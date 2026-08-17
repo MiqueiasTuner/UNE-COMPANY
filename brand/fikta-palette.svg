@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 170">
+<style>
+:root{--fikta-primary:#0B1D3A;--fikta-accent:#FFC629;--fikta-bg:#FFFFFF;--fikta-secondary:#667085;}
+.primary{fill:var(--fikta-primary)} .accent{fill:var(--fikta-accent)} .bg{fill:var(--fikta-bg)} .secondary{fill:var(--fikta-secondary)}
+</style>
+
+<rect x="0" y="0" width="120" height="120" class="primary"/>
+<rect x="150" y="0" width="120" height="120" class="bg" stroke="#D0D5DD"/>
+<rect x="300" y="0" width="120" height="120" class="accent"/>
+<text x="60" y="150" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" fill="#344054">#0B1D3A</text>
+<text x="210" y="150" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" fill="#344054">#FFFFFF</text>
+<text x="360" y="150" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" fill="#344054">#FFC629</text>
+
+</svg>

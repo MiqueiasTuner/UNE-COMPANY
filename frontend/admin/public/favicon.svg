@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<style>
+:root{--fikta-primary:#0B1D3A;--fikta-accent:#FFC629;--fikta-bg:#FFFFFF;--fikta-secondary:#667085;}
+.primary{fill:var(--fikta-primary)} .accent{fill:var(--fikta-accent)} .bg{fill:var(--fikta-bg)} .secondary{fill:var(--fikta-secondary)}
+</style>
+
+<rect class="primary" width="64" height="64" rx="12"/>
+<polygon class="accent" points="14,14 42,4 42,16 14,16"/>
+<path fill="#FFFFFF" d="M12 20 H50 L44 28 H26 V36 H43 L38 44 H26 V56 H12 Z"/>
+
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 120">
+<style>
+:root{--fikta-primary:#0B1D3A;--fikta-accent:#FFC629;--fikta-bg:#FFFFFF;--fikta-secondary:#667085;}
+.primary{fill:var(--fikta-primary)} .accent{fill:var(--fikta-accent)} .bg{fill:var(--fikta-bg)} .secondary{fill:var(--fikta-secondary)}
+</style>
+
+<path class="primary" d="M20 18 H88 L78 34 H46 V50 H76 L66 66 H46 V104 H20 Z"/>
+
+</svg>

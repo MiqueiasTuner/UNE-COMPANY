@@ -1,0 +1,15 @@
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\bin\Debug\net9.0\Fikta.Application.deps.json
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\bin\Debug\net9.0\Fikta.Application.dll
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\bin\Debug\net9.0\Fikta.Application.pdb
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\bin\Debug\net9.0\Fikta.Domain.dll
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\bin\Debug\net9.0\Fikta.Domain.pdb
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\Fikta.Application.csproj.AssemblyReference.cache
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\Fikta.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\Fikta.Application.AssemblyInfoInputs.cache
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\Fikta.Application.AssemblyInfo.cs
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\Fikta.Application.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\Fikta.Ap.239ABA93.Up2Date
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\Fikta.Application.dll
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\refint\Fikta.Application.dll
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\Fikta.Application.pdb
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\Fikta.Application\obj\Debug\net9.0\ref\Fikta.Application.dll

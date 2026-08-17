@@ -1,0 +1,9 @@
+{
+  "name": "fikta-root",
+  "version": "1.0.0",
+  "scripts": {
+    "dev:admin": "npm run dev --prefix frontend/admin",
+    "dev:portal": "npx vite frontend/portal --port 3000",
+    "dev": "npx concurrently \"npm run dev:admin\" \"npm run dev:portal\""
+  }
+}

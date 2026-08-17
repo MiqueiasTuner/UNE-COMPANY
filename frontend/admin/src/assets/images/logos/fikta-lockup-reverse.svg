@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 110">
+<style>
+:root{--fikta-primary:#0B1D3A;--fikta-accent:#FFC629;--fikta-bg:#FFFFFF;--fikta-secondary:#667085;}
+.primary{fill:var(--fikta-primary)} .accent{fill:var(--fikta-accent)} .bg{fill:var(--fikta-bg)} .secondary{fill:var(--fikta-secondary)}
+</style>
+
+<rect class="primary" width="390" height="110"/>
+<g transform="translate(8,8) scale(.72)">
+<polygon class="accent" points="26,18 78,0 78,22 26,22"/>
+<path fill="#FFFFFF" d="M20 28 H92 L82 44 H46 V60 H78 L68 76 H46 V112 H20 Z"/>
+</g>
+<g transform="translate(118,18) scale(.72)">
+<path fill="#FFFFFF" d="M0 0 H54 V10 H14 V30 H48 V40 H14 V72 H0 Z"/>
+<rect fill="#FFFFFF" x="70" y="0" width="12" height="72"/>
+<path fill="#FFFFFF" d="M100 0 H114 V28 L142 0 H160 L128 32 L163 72 H145 L118 40 L114 44 V72 H100 Z"/>
+<polygon class="accent" points="124,30 136,19 142,25 130,36"/>
+<path fill="#FFFFFF" d="M176 0 H236 V11 H213 V72 H199 V11 H176 Z"/>
+<path fill="#FFFFFF" fill-rule="evenodd" d="M252 72 L281 0 H297 L326 72 H311 L304 53 H274 L267 72 Z M279 41 H299 L289 15 Z"/>
+</g>
+<text x="118" y="92" fill="#FFFFFF" opacity=".82" font-family="Inter,Arial,sans-serif" font-size="15" letter-spacing="5">editora digital</text>
+
+</svg>

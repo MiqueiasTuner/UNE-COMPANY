@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: fikta_db
+    restart: always
+    environment:
+      POSTGRES_USER: fikta_user
+      POSTGRES_PASSWORD: fikta_secure_pass_2026
+      POSTGRES_DB: fikta_prod
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: fikta_cache
+    restart: always
+    ports:
+      - "6379:6379"
+
+  api:
+    image: fikta_api:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fikta_api
+    restart: always
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Database=fikta_prod;Username=fikta_user;Password=fikta_secure_pass_2026;Port=5432
+      - JwtSettings__Secret=FIKTA_SUPER_SECRET_KEY_PROD_JWT_HS512_2026_TOKEN
+      - JwtSettings__Issuer=fikta-api
+      - JwtSettings__Audience=fikta-clients
+      - EncryptionSettings__Key=FIKTA_AES_KEY_FOR_ERP_CREDENTIALS_2026
+      - SmtpSettings__Host=smtp.fikta.com.br
+      - SmtpSettings__Port=587
+      - SmtpSettings__Username=noreply@fikta.com.br
+      - SmtpSettings__Password=secure_smtp_pass_2026
+
+volumes:
+  postgres_data:

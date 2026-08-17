@@ -1,0 +1,11 @@
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\bin\Debug\net9.0\UneLivros.Domain.deps.json
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\bin\Debug\net9.0\UneLivros.Domain.dll
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\bin\Debug\net9.0\UneLivros.Domain.pdb
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\obj\Debug\net9.0\UneLivros.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\obj\Debug\net9.0\UneLivros.Domain.AssemblyInfoInputs.cache
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\obj\Debug\net9.0\UneLivros.Domain.AssemblyInfo.cs
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\obj\Debug\net9.0\UneLivros.Domain.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\obj\Debug\net9.0\UneLivros.Domain.dll
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\obj\Debug\net9.0\refint\UneLivros.Domain.dll
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\obj\Debug\net9.0\UneLivros.Domain.pdb
+C:\Users\Administrator\Documents\UNE COMPANY\UNE-LIVROS\backend\UneLivros.Domain\obj\Debug\net9.0\ref\UneLivros.Domain.dll
