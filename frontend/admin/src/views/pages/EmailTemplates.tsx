@@ -11,12 +11,9 @@ interface EmailTemplate {
   status: 'active' | 'draft';
 }
 
-const initialTemplates: EmailTemplate[] = [
-  { id: '1', name: 'Boas-vindas ao App de Leitura', subject: 'Seu acesso à biblioteca digital está disponível!', category: 'Onboarding', lastUpdated: '10/08/2026', status: 'active' },
-  { id: '2', name: 'Ativação de Assinatura', subject: 'Sua assinatura FIKTA foi ativada com sucesso.', category: 'Transacional', lastUpdated: '09/08/2026', status: 'active' },
-  { id: '3', name: 'Lembrete de Renovação Mensal', subject: 'Seu plano de leitura renova em breve.', category: 'Renovação', lastUpdated: '02/08/2026', status: 'draft' },
-  { id: '4', name: 'Novidades do Mês - Revista & Livros', subject: 'Confira os novos títulos adicionados para você!', category: 'Marketing', lastUpdated: '28/07/2026', status: 'active' },
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/email-templates
+const initialTemplates: EmailTemplate[] = [];
 
 type DomainStatus = 'unverified' | 'checking' | 'verified' | 'failed';
 

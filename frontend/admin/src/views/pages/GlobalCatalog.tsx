@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Icon } from '@iconify/react';
 import CardBox from 'src/components/shared/CardBox';
+import { apiGet } from 'src/api/client';
+import { useAutoRefresh } from 'src/hooks/useAutoRefresh';
 
 interface Book {
   id: string;
@@ -11,16 +14,53 @@ interface Book {
   status: boolean;
 }
 
-const initialBooks: Book[] = [
-  { id: '1', title: 'O Alquimista', author: 'Paulo Coelho', category: 'Ficção', format: 'E-book', status: true },
-  { id: '2', title: 'Pai Rico, Pai Pobre', author: 'Robert Kiyosaki', category: 'Finanças', format: 'Audiobook', status: true },
-  { id: '3', title: 'A Arte da Guerra', author: 'Sun Tzu', category: 'Estratégia', format: 'E-book', status: true },
-  { id: '4', title: 'Hábitos Atômicos', author: 'James Clear', category: 'Desenvolvimento Pessoal', format: 'Audiobook', status: true },
-  { id: '5', title: 'Sapiens', author: 'Yuval Noah Harari', category: 'História', format: 'E-book', status: false },
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/catalog/books
+const initialBooks: Book[] = [];
+
+/** Título como devolvido por GET /api/v1/catalog/books. */
+interface ApiBook {
+  id: string;
+  title: string;
+  author: string | null;
+  category: string | null;
+  fileFormat: string;
+  fileUrl: string;
+  status: string;
+  providerCount: number;
+}
 
 const GlobalCatalog = () => {
+  const navigate = useNavigate();
   const [books, setBooks] = useState<Book[]>(initialBooks);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const loadBooks = useCallback(async () => {
+    try {
+      const data = await apiGet<{ books: ApiBook[] }>('/api/v1/catalog/books');
+      setBooks(
+        (data.books ?? []).map((b) => ({
+          id: b.id,
+          title: b.title,
+          author: b.author ?? '—',
+          category: b.category ?? '—',
+          // O acervo distingue formatos de arquivo (EPUB/PDF) do tipo de mídia; audiobook
+          // é o único que muda a experiência de leitura, então é o único tratado à parte.
+          format: b.fileFormat === 'AUDIOBOOK' ? 'Audiobook' : 'E-book',
+          status: b.status === 'ACTIVE',
+        }))
+      );
+      setApiError(null);
+    } catch (err: any) {
+      setApiError(err.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBooks();
+  }, [loadBooks]);
+
+  useAutoRefresh(loadBooks, 30_000);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
@@ -58,7 +98,7 @@ const GlobalCatalog = () => {
           <p className="text-sm text-muted-foreground">Global Context: Gerencie títulos de e-books e audiobooks ativos no ecossistema</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => navigate('/admin/catalog/books/new')}
           className="bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-all"
         >
           <Icon icon="tabler:plus" width={18} />

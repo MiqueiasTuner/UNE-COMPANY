@@ -16,86 +16,9 @@ interface Employee {
   avatarUrl: string;
 }
 
-const initialEmployees: Employee[] = [
-  { 
-    id: '175', 
-    nome: 'Nicolas Camargo', 
-    email: 'nicolas.camargo@technet.com.br', 
-    cargo: 'Administrador', 
-    departamento: 'TechNet', 
-    ativo: true, 
-    criadoEm: '10/01/2025',
-    ultimaAtividade: '8/10/2025, 9:51',
-    appMovel: 'Não instalado',
-    appDesktop: 'Não instalado',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'
-  },
-  { 
-    id: '153', 
-    nome: 'Daniel Cha', 
-    email: 'daniel.cha@technet.com.br', 
-    cargo: 'Gerente Comercial', 
-    departamento: 'Departamento de Entrega e Logística', 
-    ativo: true, 
-    criadoEm: '15/02/2025',
-    ultimaAtividade: '17/11/2023, 18:49',
-    appMovel: 'Não instalado',
-    appDesktop: 'Não instalado',
-    avatarUrl: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=150'
-  },
-  { 
-    id: '129', 
-    nome: 'Stacy Smith', 
-    email: 'stacy.smith@technet.com.br', 
-    cargo: 'Administrador', 
-    departamento: 'TechNet Partners', 
-    ativo: true, 
-    criadoEm: '20/02/2025',
-    ultimaAtividade: '12/9/2025, 19:43',
-    appMovel: 'Não instalado',
-    appDesktop: 'Não instalado',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150'
-  },
-  { 
-    id: '101', 
-    nome: 'Ana Laura Lima', 
-    email: 'ana.lima@technet.com.br', 
-    cargo: 'CEO', 
-    departamento: 'TechNet Partners', 
-    ativo: true, 
-    criadoEm: '01/03/2025',
-    ultimaAtividade: '27/11/2025, 21:34',
-    appMovel: 'Android',
-    appDesktop: 'Windows',
-    avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150'
-  },
-  { 
-    id: '79', 
-    nome: 'Adriana Sánchez', 
-    email: 'adriana.sanchez@technet.com.br', 
-    cargo: 'Especialista em Atendimento', 
-    departamento: 'TechNet', 
-    ativo: true, 
-    criadoEm: '11/04/2025',
-    ultimaAtividade: '27/11/2025, 21:28',
-    appMovel: 'iOS',
-    appDesktop: 'macOS',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150'
-  },
-  { 
-    id: '75', 
-    nome: 'Débora Carvalho Soverosa', 
-    email: 'debora.carvalho@technet.com.br', 
-    cargo: 'Suporte Técnico', 
-    departamento: 'Departamento de Manutenção', 
-    ativo: false, 
-    criadoEm: '22/05/2025',
-    ultimaAtividade: '2/9/2025, 19:39',
-    appMovel: 'Não instalado',
-    appDesktop: 'Não instalado',
-    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150'
-  },
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/providers/{id}/employees
+const initialEmployees: Employee[] = [];
 
 const Employees = () => {
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);

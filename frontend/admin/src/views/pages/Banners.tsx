@@ -19,53 +19,9 @@ interface Banner {
   imageUrl: string;
 }
 
-const initialBanners: Banner[] = [
-  {
-    id: '1',
-    title: 'Lançamento Coleção Stephen King',
-    imageLink: 'Stephen King Banner',
-    clickUrl: '/catalog/collection-stephen-king',
-    status: true,
-    startDate: '2026-08-01',
-    endDate: '2026-08-31',
-    clicks: 412,
-    impressions: 8940,
-    targetSegment: 'Todos os Assinantes',
-    utmSource: 'unebook-app',
-    utmCampaign: 'promo-stephen-king',
-    imageUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=600'
-  },
-  {
-    id: '2',
-    title: 'Banca Digital: Lançamento Revista Forbes',
-    imageLink: 'Forbes Banner Premium',
-    clickUrl: '/catalog/magazine-forbes-august',
-    status: true,
-    startDate: '2026-08-10',
-    endDate: '2026-09-10',
-    clicks: 189,
-    impressions: 4210,
-    targetSegment: 'Assinantes Biblioteca Diamante',
-    utmSource: 'unebook-banca',
-    utmCampaign: 'magazine-forbes',
-    imageUrl: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&q=80&w=600'
-  },
-  {
-    id: '3',
-    title: 'Campanha Black Friday Fibra + Ebooks',
-    imageLink: 'BF Banner Promo',
-    clickUrl: '/promo/fibra-ebooks',
-    status: false,
-    startDate: '2026-11-20',
-    endDate: '2026-11-30',
-    clicks: 0,
-    impressions: 0,
-    targetSegment: 'Leads e Não Assinantes',
-    utmSource: 'landing-page',
-    utmCampaign: 'black-friday-2026',
-    imageUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=600'
-  }
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/providers/{id}/banners
+const initialBanners: Banner[] = [];
 
 const Banners = () => {
   const [banners, setBanners] = useState<Banner[]>(initialBanners);

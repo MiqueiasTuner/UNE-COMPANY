@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import CardBox from 'src/components/shared/CardBox';
+import { useNavigate } from 'react-router';
+import { apiGet, apiPost } from 'src/api/client';
+import { useAutoRefresh } from 'src/hooks/useAutoRefresh';
 import ProviderDetailDrawer from './providers/ProviderDetailDrawer';
 
 interface B2BProvider {
@@ -16,14 +19,21 @@ interface B2BProvider {
   contactPhone: string;
 }
 
-const initialProviders: B2BProvider[] = [
-  { id: '1', name: 'TechNet Telecom', cnpj: '12.345.678/0001-90', subscribers: 7, erp: 'Voalle ERP', status: true, onboardedAt: '14/05/2025', stage: 'active', contactEmail: 'suporte@technet.com.br', contactPhone: '(11) 98888-7777' },
-  { id: '2', name: 'NetRápida Fibra', cnpj: '98.765.432/0001-10', subscribers: 142, erp: 'IXC Soft', status: true, onboardedAt: '22/06/2025', stage: 'active', contactEmail: 'contato@netrapida.com.br', contactPhone: '(21) 97777-6666' },
-  { id: '3', name: 'WebFibra Internet', cnpj: '45.890.123/0001-44', subscribers: 89, erp: 'SGP', status: true, onboardedAt: '10/08/2025', stage: 'erp_homologation', contactEmail: 'admin@webfibra.net', contactPhone: '(31) 96666-5555' },
-  { id: '4', name: 'LinkProvedor SVA', cnpj: '55.333.111/0002-88', subscribers: 310, erp: 'HubSoft', status: true, onboardedAt: '03/09/2025', stage: 'sva_setup', contactEmail: 'parcerias@linkprovedor.com.br', contactPhone: '(41) 95555-4444' },
-  { id: '5', name: 'TelecomSul Franquias', cnpj: '33.222.999/0001-77', subscribers: 0, erp: 'Webhooks API', status: false, onboardedAt: '15/10/2025', stage: 'contract', contactEmail: 'diretoria@telecomsul.com.br', contactPhone: '(51) 94444-3333' },
-  { id: '6', name: 'NovaFibra SVA', cnpj: '11.222.333/0001-44', subscribers: 0, erp: 'Voalle ERP', status: false, onboardedAt: '11/08/2026', stage: 'lead', contactEmail: 'novafibra@gmail.com', contactPhone: '(81) 93333-2222' },
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/providers
+const initialProviders: B2BProvider[] = [];
+
+/** Formato devolvido por GET /api/v1/providers. */
+interface ApiProvider {
+  id: string;
+  name: string;
+  cnpj: string;
+  status: string;
+  createdAt: string | null;
+  subscriberCount: number;
+  hasErpIntegration: boolean;
+  moduleCount: number;
+}
 
 const STAGES = [
   { id: 'lead', title: '1. Lead / Prospecção', color: 'border-t-blue-500 bg-blue-500/5 text-blue-600', icon: 'tabler:user-search' },
@@ -34,7 +44,10 @@ const STAGES = [
 ] as const;
 
 const B2BProviders = () => {
+  const navigate = useNavigate();
   const [providers, setProviders] = useState<B2BProvider[]>(initialProviders);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   
   // Create Modal States
@@ -70,30 +83,69 @@ const B2BProviders = () => {
     setIsDetailOpen(true);
   };
 
-  const handleCreateProvider = (e: React.FormEvent) => {
+  /**
+   * Carrega os provedores da API. `subscribers` vem contado no banco, não somado aqui —
+   * é o número que a FIKTA usa para cobrar o provedor, então precisa ser o mesmo que
+   * um SELECT devolveria.
+   */
+  const loadProviders = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const data = await apiGet<{ providers: ApiProvider[] }>('/api/v1/providers');
+      setProviders(
+        (data.providers ?? []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          cnpj: p.cnpj,
+          subscribers: p.subscriberCount,
+          erp: p.hasErpIntegration ? 'Integrado' : 'Sem integração',
+          status: p.status === 'ACTIVE',
+          onboardedAt: p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '—',
+          // O funil de onboarding ainda não é persistido; até existir coluna própria,
+          // derivamos o mínimo verificável em vez de inventar um estágio.
+          stage: p.status === 'ACTIVE' ? 'active' : 'lead',
+          contactEmail: '—',
+          contactPhone: '—',
+        }))
+      );
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProviders();
+  }, [loadProviders]);
+
+  // Mantém a lista viva sem F5.
+  useAutoRefresh(loadProviders, 30_000);
+
+  const handleCreateProvider = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !cnpj) return;
 
-    const newProvider: B2BProvider = {
-      id: Date.now().toString(),
-      name,
-      cnpj,
-      subscribers: 0,
-      erp,
-      status: initialStage === 'active',
-      onboardedAt: new Date().toLocaleDateString('pt-BR'),
-      stage: initialStage,
-      contactEmail: contactEmail || 'N/A',
-      contactPhone: contactPhone || 'N/A',
-    };
-
-    setProviders([...providers, newProvider]);
-    setName('');
-    setCnpj('');
-    setContactEmail('');
-    setContactPhone('');
-    setInitialStage('lead');
-    setIsModalOpen(false);
+    setApiError(null);
+    try {
+      await apiPost('/api/v1/providers', {
+        name,
+        cnpj,
+        status: initialStage === 'active' ? 'ACTIVE' : 'SUSPENDED',
+      });
+      // Relê do servidor: o backend recusa CNPJ duplicado e normaliza o domínio, então
+      // o estado autoritativo é o dele, não o que montaríamos aqui.
+      await loadProviders();
+      setName('');
+      setCnpj('');
+      setContactEmail('');
+      setContactPhone('');
+      setInitialStage('lead');
+      setIsModalOpen(false);
+    } catch (err: any) {
+      setApiError(err.message);
+    }
   };
 
   const toggleStatus = (id: string) => {
@@ -175,6 +227,13 @@ const B2BProviders = () => {
 
   return (
     <div className="space-y-6">
+      {apiError && (
+        <div className="p-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 flex items-start gap-2.5">
+          <Icon icon="tabler:alert-triangle" width={18} className="text-red-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-red-700 dark:text-red-300">{apiError}</div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -322,7 +381,7 @@ const B2BProviders = () => {
                     <td className="p-4 text-muted-foreground">{p.onboardedAt}</td>
                     <td className="p-4 text-right flex justify-end gap-2">
                       <button
-                        onClick={(e) => { e.stopPropagation(); openEditModal(p); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/admin/providers/${p.id}`); }}
                         className="text-muted-foreground hover:text-primary transition-all p-1"
                         title="Editar Contratante"
                       >
@@ -393,7 +452,7 @@ const B2BProviders = () => {
                             <span className="text-[10px] text-muted-foreground font-mono">{isp.cnpj}</span>
                           </div>
                           <button
-                            onClick={(e) => { e.stopPropagation(); openEditModal(isp); }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/providers/${isp.id}`); }}
                             className="text-muted-foreground hover:text-primary p-1 rounded-md transition-all shrink-0 hover:bg-muted/10"
                             title="Editar Contratante"
                           >
@@ -695,7 +754,7 @@ const B2BProviders = () => {
         provider={detailProvider}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
-        onEdit={(p) => openEditModal(p)}
+        onEdit={(p) => navigate(`/admin/providers/${p.id}`)}
       />
     </div>
   );

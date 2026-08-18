@@ -7,6 +7,20 @@ import { ApexOptions } from 'apexcharts';
 const ProviderConsumption = () => {
   const [selectedMonth, setSelectedMonth] = useState('2026-08');
 
+  /** Uma linha de fechamento de cobrança do SVA. */
+  interface BillingStatement {
+    period: string;
+    activeLicenses: string;
+    pricePerLicense: string;
+    downloads: string;
+    netTotal: string;
+    invoiceStatus: string;
+  }
+
+  // Dados reais vêm da API — não popular com exemplos.
+  // Origem: GET /api/v1/providers/{id}/billing-statements
+  const billingStatements: BillingStatement[] = [];
+
   // Sample data for charts
   const categoryChartOptions: ApexOptions = {
     chart: {
@@ -31,7 +45,7 @@ const ProviderConsumption = () => {
             total: {
               show: true,
               label: 'Total Acessos',
-              formatter: () => '14,820'
+              formatter: () => '0'
             }
           }
         }
@@ -41,7 +55,9 @@ const ProviderConsumption = () => {
     tooltip: { theme: 'dark' }
   };
 
-  const categorySeries = [4500, 3200, 2900, 2400, 1820];
+  // Dados reais vêm da API — não popular com exemplos.
+  // Origem: GET /api/v1/providers/{id}/consumption
+  const categorySeries: number[] = [];
 
   const consumptionHistoryOptions: ApexOptions = {
     chart: {
@@ -62,8 +78,8 @@ const ProviderConsumption = () => {
   };
 
   const consumptionHistorySeries = [
-    { name: 'Leitores Ativos', data: [3100, 3400, 3900, 4200, 4800, 5210] },
-    { name: 'Downloads de Revistas', data: [1200, 1500, 1800, 1900, 2100, 2450] }
+    { name: 'Leitores Ativos', data: [] as number[] },
+    { name: 'Downloads de Revistas', data: [] as number[] }
   ];
 
   return (
@@ -91,17 +107,21 @@ const ProviderConsumption = () => {
         </div>
       </div>
 
-      {/* Consumption Cards */}
+      {/*
+        Indicadores de consumo.
+
+        Os valores e as variações mês a mês são calculados no backend a partir de
+        CustomerBooks e ProviderMagazines. Nenhum percentual é estimado aqui: uma
+        variação "+8.5%" inventada é o tipo de número que acaba dentro de uma
+        apresentação comercial para o provedor.
+        Origem: GET /api/v1/providers/{id}/consumption?month=YYYY-MM
+      */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <CardBox>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase">Assinantes Ativos</p>
-              <h3 className="text-2xl font-bold text-foreground mt-1">5,210</h3>
-              <span className="text-xs font-bold text-emerald-500 flex items-center gap-1 mt-1">
-                <Icon icon="tabler:arrow-up-right" />
-                +8.5% vs mês anterior
-              </span>
+              <h3 className="text-2xl font-bold text-foreground mt-1">—</h3>
             </div>
             <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
               <Icon icon="tabler:users" width={24} />
@@ -112,11 +132,7 @@ const ProviderConsumption = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase">Leituras Completadas</p>
-              <h3 className="text-2xl font-bold text-foreground mt-1">1,482</h3>
-              <span className="text-xs font-bold text-emerald-500 flex items-center gap-1 mt-1">
-                <Icon icon="tabler:arrow-up-right" />
-                +12.4% vs mês anterior
-              </span>
+              <h3 className="text-2xl font-bold text-foreground mt-1">—</h3>
             </div>
             <div className="h-12 w-12 bg-emerald-100 text-emerald-600 dark:bg-emerald-900/35 dark:text-emerald-300 rounded-xl flex items-center justify-center">
               <Icon icon="tabler:book-open" width={24} />
@@ -127,10 +143,7 @@ const ProviderConsumption = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase">Tráfego de Dados (DRM)</p>
-              <h3 className="text-2xl font-bold text-foreground mt-1">48.6 GB</h3>
-              <span className="text-xs font-bold text-muted-foreground flex items-center gap-1 mt-1">
-                Taxa de compressão ativa
-              </span>
+              <h3 className="text-2xl font-bold text-foreground mt-1">—</h3>
             </div>
             <div className="h-12 w-12 bg-amber-100 text-amber-600 dark:bg-amber-900/35 dark:text-amber-300 rounded-xl flex items-center justify-center">
               <Icon icon="tabler:chart-arrows" width={24} />
@@ -141,10 +154,7 @@ const ProviderConsumption = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase">Faturamento Estimado</p>
-              <h3 className="text-2xl font-bold text-foreground mt-1">R$ 10.420,00</h3>
-              <span className="text-xs font-bold text-primary flex items-center gap-1 mt-1">
-                Tarifa SVA Especial
-              </span>
+              <h3 className="text-2xl font-bold text-foreground mt-1">—</h3>
             </div>
             <div className="h-12 w-12 bg-red-100 text-red-600 dark:bg-red-900/35 dark:text-red-300 rounded-xl flex items-center justify-center">
               <Icon icon="tabler:cash" width={24} />
@@ -186,31 +196,36 @@ const ProviderConsumption = () => {
                 <th className="p-4 font-semibold text-muted-foreground text-right">Status do Boleto</th>
               </tr>
             </thead>
+            {/*
+              Fechamento de cobrança do SVA, por competência.
+              Origem: GET /api/v1/providers/{id}/billing-statements
+
+              Valor por licença e total líquido são dinheiro cobrado do provedor —
+              exibir um número de exemplo aqui é o pior lugar possível para isso.
+            */}
             <tbody>
-              <tr className="border-b border-border hover:bg-muted/5 transition-all">
-                <td className="p-4 text-foreground font-semibold">Agosto/2026</td>
-                <td className="p-4 font-mono text-foreground">5,210</td>
-                <td className="p-4 font-mono text-foreground">R$ 2,00</td>
-                <td className="p-4 font-mono text-muted-foreground">2,450</td>
-                <td className="p-4 font-bold text-primary font-mono">R$ 10.420,00</td>
-                <td className="p-4 text-right">
-                  <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/35 dark:text-amber-200 px-2.5 py-1 rounded-full text-xs font-bold">
-                    Aberto (Vencimento 15/09)
-                  </span>
-                </td>
-              </tr>
-              <tr className="border-b border-border hover:bg-muted/5 transition-all">
-                <td className="p-4 text-foreground font-semibold">Julho/2026</td>
-                <td className="p-4 font-mono text-foreground">4,800</td>
-                <td className="p-4 font-mono text-foreground">R$ 2,00</td>
-                <td className="p-4 font-mono text-muted-foreground">2,100</td>
-                <td className="p-4 font-bold text-foreground font-mono">R$ 9.600,00</td>
-                <td className="p-4 text-right">
-                  <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/35 dark:text-emerald-200 px-2.5 py-1 rounded-full text-xs font-bold">
-                    Pago em 14/08/2026
-                  </span>
-                </td>
-              </tr>
+              {billingStatements.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
+                    Nenhum fechamento de cobrança disponível para o período selecionado.
+                  </td>
+                </tr>
+              ) : (
+                billingStatements.map((row) => (
+                  <tr key={row.period} className="border-b border-border hover:bg-muted/5 transition-all">
+                    <td className="p-4 text-foreground font-semibold">{row.period}</td>
+                    <td className="p-4 font-mono text-foreground">{row.activeLicenses}</td>
+                    <td className="p-4 font-mono text-foreground">{row.pricePerLicense}</td>
+                    <td className="p-4 font-mono text-muted-foreground">{row.downloads}</td>
+                    <td className="p-4 font-bold text-primary font-mono">{row.netTotal}</td>
+                    <td className="p-4 text-right">
+                      <span className="bg-muted text-foreground px-2.5 py-1 rounded-full text-xs font-bold">
+                        {row.invoiceStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

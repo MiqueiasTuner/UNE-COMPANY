@@ -247,28 +247,37 @@ const UserProfile = () => {
               {isCustomer ? profile.department : profile.position}
             </span>
 
-            {/* Mobile & Desktop download apps buttons */}
-            <div className="mt-8 pt-6 border-t border-border w-full space-y-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase block text-left">Aplicativos FIKTA</span>
-              <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-                <a href="#android" className="flex items-center gap-1.5 p-2 bg-muted/20 border border-border rounded-lg hover:border-[#0B1D3A] transition-all">
-                  <Icon icon="tabler:brand-android" width={16} className="text-emerald-500" />
-                  <span>Android App</span>
-                </a>
-                <a href="#ios" className="flex items-center gap-1.5 p-2 bg-muted/20 border border-border rounded-lg hover:border-[#0B1D3A] transition-all">
-                  <Icon icon="tabler:brand-apple" width={16} className="text-foreground" />
-                  <span>iOS App</span>
-                </a>
-                <a href="#windows" className="flex items-center gap-1.5 p-2 bg-muted/20 border border-border rounded-lg hover:border-[#0B1D3A] transition-all">
-                  <Icon icon="tabler:brand-windows" width={16} className="text-blue-500" />
-                  <span>Windows</span>
-                </a>
-                <a href="#macos" className="flex items-center gap-1.5 p-2 bg-muted/20 border border-border rounded-lg hover:border-[#0B1D3A] transition-all">
-                  <Icon icon="tabler:brand-apple" width={16} className="text-purple-500" />
-                  <span>macOS</span>
-                </a>
+            {/*
+              Os atalhos de download de aplicativo (Android/iOS/Windows/macOS) ficam fora do
+              perfil do assinante: apontavam para âncoras inexistentes e o perfil dele deve
+              conter os dados dele, não a vitrine de plataformas da FIKTA.
+              Para a equipe interna o bloco permanece, como material de apoio.
+            */}
+            {!isCustomer && (
+              <div className="mt-8 pt-6 border-t border-border w-full space-y-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase block text-left">
+                  Aplicativos FIKTA
+                </span>
+                <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+                  <a href="#android" className="flex items-center gap-1.5 p-2 bg-muted/20 border border-border rounded-lg hover:border-[#0B1D3A] transition-all">
+                    <Icon icon="tabler:brand-android" width={16} className="text-emerald-500" />
+                    <span>Android App</span>
+                  </a>
+                  <a href="#ios" className="flex items-center gap-1.5 p-2 bg-muted/20 border border-border rounded-lg hover:border-[#0B1D3A] transition-all">
+                    <Icon icon="tabler:brand-apple" width={16} className="text-foreground" />
+                    <span>iOS App</span>
+                  </a>
+                  <a href="#windows" className="flex items-center gap-1.5 p-2 bg-muted/20 border border-border rounded-lg hover:border-[#0B1D3A] transition-all">
+                    <Icon icon="tabler:brand-windows" width={16} className="text-blue-500" />
+                    <span>Windows</span>
+                  </a>
+                  <a href="#macos" className="flex items-center gap-1.5 p-2 bg-muted/20 border border-border rounded-lg hover:border-[#0B1D3A] transition-all">
+                    <Icon icon="tabler:brand-apple" width={16} className="text-purple-500" />
+                    <span>macOS</span>
+                  </a>
+                </div>
               </div>
-            </div>
+            )}
           </CardBox>
         </div>
 

@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -16,6 +19,19 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<VoalleAdapter> _logger;
+
+    /// <summary>
+    /// Access tokens cached per provider. Voalle limits integrators to 30 req/min, so
+    /// re-authenticating on every business call would burn half of that budget on tokens
+    /// alone. The token is valid for 1h and is reusable across all subscribers of the
+    /// same provider. See docs/architecture/VOALLE-API-REFERENCE.md §7.2 (camada 0).
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, CachedToken> _tokenCache = new();
+
+    /// <summary>Renew this long before the real expiry, so a token never expires mid-flight.</summary>
+    private static readonly TimeSpan TokenSafetyMargin = TimeSpan.FromSeconds(60);
+
+    private sealed record CachedToken(string AccessToken, DateTimeOffset ExpiresAt);
 
     public VoalleAdapter(IHttpClientFactory httpClientFactory, ILogger<VoalleAdapter> logger)
     {
@@ -43,6 +59,13 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
 
     private async Task<string> GetAccessTokenAsync(HttpClient client, IntegrationSettings settings)
     {
+        var cacheKey = $"{settings.EndpointUrl}|{settings.ClientId}";
+
+        if (_tokenCache.TryGetValue(cacheKey, out var cached) && cached.ExpiresAt > DateTimeOffset.UtcNow)
+        {
+            return cached.AccessToken;
+        }
+
         try
         {
             var authUrl = BuildUrl(settings.EndpointUrl, 45700, "/connect/token");
@@ -75,6 +98,18 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
                 throw new InvalidOperationException("Voalle authentication returned empty token response");
             }
 
+            // expires_in is in seconds (typically 3600). Fall back to a conservative 5 min if absent.
+            var lifetime = tokenResponse.ExpiresIn > 0
+                ? TimeSpan.FromSeconds(tokenResponse.ExpiresIn)
+                : TimeSpan.FromMinutes(5);
+
+            if (lifetime > TokenSafetyMargin)
+            {
+                _tokenCache[cacheKey] = new CachedToken(
+                    tokenResponse.AccessToken,
+                    DateTimeOffset.UtcNow + lifetime - TokenSafetyMargin);
+            }
+
             return tokenResponse.AccessToken;
         }
         catch (Exception ex)
@@ -100,11 +135,14 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
         try
         {
             var client = await CreateConfiguredClientAsync(settings);
-            var url = BuildUrl(settings.EndpointUrl, 45715, $"/external/integrations/thirdparty/people/search?txId={document}");
+
+            // Voalle takes the document in the PATH (digits only), not as a query string.
+            var txId = OnlyDigits(document);
+            var url = BuildUrl(settings.EndpointUrl, 45715, $"/external/integrations/thirdparty/people/txid/{txId}");
 
             _logger.LogInformation("Querying customer by document from Voalle at URL: {Url}", url);
             var response = await client.GetAsync(url);
-            
+
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 return null;
@@ -112,11 +150,15 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
 
             response.EnsureSuccessStatusCode();
 
-            var voallePeople = await response.Content.ReadFromJsonAsync<List<VoallePersonResponse>>();
-            if (voallePeople == null || voallePeople.Count == 0)
+            // This endpoint returns a single object in `response`, not an array.
+            var envelope = await response.Content.ReadFromJsonAsync<VoalleEnvelope<VoallePersonResponse>>();
+            if (envelope?.Response == null || !envelope.Success)
             {
+                _logger.LogInformation("Voalle returned no person for document {Document}", txId);
                 return null;
             }
+
+            var voallePeople = new List<VoallePersonResponse> { envelope.Response };
 
             // Map the first matching person
             var person = voallePeople[0];
@@ -127,7 +169,7 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
                 Email = person.Email ?? string.Empty,
                 Phone = person.CellPhone ?? person.Phone ?? string.Empty,
                 Document = person.TxId,
-                Status = person.Active ? "ACTIVE" : "INACTIVE"
+                Status = person.IsActive ? "ACTIVE" : "INACTIVE"
             };
 
             // Retrieve contracts for this user
@@ -195,7 +237,7 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
                             Email = p.Email ?? string.Empty,
                             Phone = p.CellPhone ?? p.Phone ?? string.Empty,
                             Document = p.TxId,
-                            Status = p.Active ? "ACTIVE" : "INACTIVE"
+                            Status = p.IsActive ? "ACTIVE" : "INACTIVE"
                         });
                     }
                 }
@@ -239,7 +281,7 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
                 Email = person.Email ?? string.Empty,
                 Phone = person.CellPhone ?? person.Phone ?? string.Empty,
                 Document = person.TxId,
-                Status = person.Active ? "ACTIVE" : "INACTIVE"
+                Status = person.IsActive ? "ACTIVE" : "INACTIVE"
             };
 
             customer.Contracts = await GetCustomerContractsInternalAsync(client, customer.ExternalId, settings);
@@ -309,27 +351,41 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
         try
         {
             var client = await CreateConfiguredClientAsync(settings);
-            var url = BuildUrl(settings.EndpointUrl, 45715, "/external/integrations/thirdparty/crm/contract-types");
+            var url = BuildUrl(settings.EndpointUrl, 45715, "/external/integrations/thirdparty/crm/contracttypesandservices");
 
-            _logger.LogInformation("Querying products/contract types from Voalle at URL: {Url}", url);
+            _logger.LogInformation("Querying contract types and services from Voalle at URL: {Url}", url);
             var response = await client.GetAsync(url);
             response.EnsureSuccessStatusCode();
 
-            var voalleProducts = await response.Content.ReadFromJsonAsync<List<VoalleProductResponse>>();
-            if (voalleProducts == null)
+            var envelope = await response.Content.ReadFromJsonAsync<VoalleEnvelope<List<VoalleContractTypeResponse>>>();
+            if (envelope?.Response == null || !envelope.Success)
             {
+                // Empty is the expected result when the provider has not enabled the
+                // "Integração" flag on the contract type in the ERP.
+                _logger.LogWarning("Voalle returned no contract types. Check the 'Integração' flag on the ERP contract type.");
                 return Array.Empty<NormalizedProductDto>();
             }
 
+            // We map the SERVICES, not the contract types: it is the service `code` (e.g. "1.3")
+            // that a contract references and that ExternalProductMapping keys the catalog on.
             var products = new List<NormalizedProductDto>();
-            foreach (var vp in voalleProducts)
+            foreach (var contractType in envelope.Response)
             {
-                products.Add(new NormalizedProductDto
+                foreach (var service in contractType.Services ?? new List<VoalleServiceProductResponse>())
                 {
-                    ExternalProductId = vp.Id?.ToString() ?? string.Empty,
-                    Name = vp.Name,
-                    Description = vp.Description ?? string.Empty
-                });
+                    if (string.IsNullOrWhiteSpace(service.Code)) continue;
+
+                    products.Add(new NormalizedProductDto
+                    {
+                        ExternalProductId = service.Code,
+                        Name = service.Title ?? string.Empty,
+                        // Qualify with the parent contract type so an admin picking "Fibra 300 Mb"
+                        // out of a flat list can still tell which plan it belongs to.
+                        Description = string.IsNullOrWhiteSpace(service.Description)
+                            ? contractType.Title ?? string.Empty
+                            : $"{contractType.Title} — {service.Description}"
+                    });
+                }
             }
 
             return products;
@@ -341,19 +397,38 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
         }
     }
 
-    public async Task<NormalizedFinancialDto?> GetCustomerFinancialStatusAsync(string customerExternalId, IntegrationSettings settings)
+    /// <summary>
+    /// Checks a subscriber's open invoices. Voalle keys the financial endpoints by CPF/CNPJ
+    /// (txId), NOT by the internal person id — so callers must pass the document.
+    /// </summary>
+    public async Task<NormalizedFinancialDto?> GetCustomerFinancialStatusAsync(string customerDocument, IntegrationSettings settings)
     {
         try
         {
             var client = await CreateConfiguredClientAsync(settings);
-            var url = BuildUrl(settings.EndpointUrl, 45715, $"/external/integrations/thirdparty/financial/invoices?personId={customerExternalId}");
+            var txId = OnlyDigits(customerDocument);
+            var url = BuildUrl(settings.EndpointUrl, 45715, $"/external/integrations/thirdparty/getopentitlesbytxid/{txId}");
 
-            _logger.LogInformation("Querying financial invoices from Voalle at URL: {Url}", url);
+            _logger.LogInformation("Querying open invoices from Voalle at URL: {Url}", url);
             var response = await client.GetAsync(url);
+
+            // No open invoices is a legitimate "all clear", not an error.
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new NormalizedFinancialDto { IsDelinquent = false };
+            }
+
             response.EnsureSuccessStatusCode();
 
-            var voalleInvoices = await response.Content.ReadFromJsonAsync<List<VoalleInvoiceResponse>>();
-            if (voalleInvoices == null)
+            var envelope = await response.Content.ReadFromJsonAsync<VoalleEnvelope<List<VoalleOpenTitleResponse>>>();
+            if (envelope == null || !envelope.Success)
+            {
+                _logger.LogWarning("Voalle reported failure querying open invoices for {TxId}", txId);
+                return null;
+            }
+
+            var voalleInvoices = envelope.Response;
+            if (voalleInvoices == null || voalleInvoices.Count == 0)
             {
                 return new NormalizedFinancialDto { IsDelinquent = false };
             }
@@ -365,32 +440,38 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
 
             var today = DateTime.UtcNow.Date;
 
+            // Everything this endpoint returns is by definition open — there is no `status`
+            // field to filter on. Overdue is derived from the due date alone.
             foreach (var vi in voalleInvoices)
             {
-                if (vi.Status == "PENDING" || vi.Status == "OVERDUE")
-                {
-                    var isOverdue = vi.DueDate.Date < today;
-                    var status = isOverdue ? "OVERDUE" : "PENDING";
-                    
-                    if (isOverdue)
-                    {
-                        isDelinquent = true;
-                        overdueAmount += vi.Amount;
-                        var overdueDays = (today - vi.DueDate.Date).Days;
-                        if (overdueDays > maxOverdueDays)
-                        {
-                            maxOverdueDays = overdueDays;
-                        }
-                    }
+                var billet = vi.Billet;
+                if (billet == null) continue;
 
-                    pendingInvoices.Add(new NormalizedInvoiceDto
+                var dueDate = ParseVoalleDate(billet.ExpirationDate);
+                if (dueDate == null) continue;
+
+                // finalValue already carries fine/interest/discount; `value` is the raw amount.
+                var amount = billet.Amount?.FinalValue ?? 0m;
+
+                var isOverdue = dueDate.Value.Date < today;
+                if (isOverdue)
+                {
+                    isDelinquent = true;
+                    overdueAmount += amount;
+                    var overdueDays = (today - dueDate.Value.Date).Days;
+                    if (overdueDays > maxOverdueDays)
                     {
-                        InvoiceId = vi.Id?.ToString() ?? string.Empty,
-                        Amount = vi.Amount,
-                        DueDate = vi.DueDate,
-                        Status = status
-                    });
+                        maxOverdueDays = overdueDays;
+                    }
                 }
+
+                pendingInvoices.Add(new NormalizedInvoiceDto
+                {
+                    InvoiceId = vi.Id?.ToString() ?? string.Empty,
+                    Amount = amount,
+                    DueDate = dueDate.Value,
+                    Status = isOverdue ? "OVERDUE" : "PENDING"
+                });
             }
 
             return new NormalizedFinancialDto
@@ -403,12 +484,44 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to check financial status for external customer {ExternalId} on Voalle", customerExternalId);
+            _logger.LogError(ex, "Failed to check financial status for document {Document} on Voalle", customerDocument);
             return null;
         }
     }
 
+    /// <summary>Strips CPF/CNPJ formatting — Voalle expects digits only in the path.</summary>
+    private static string OnlyDigits(string value)
+        => string.IsNullOrEmpty(value) ? string.Empty : new string(value.Where(char.IsDigit).ToArray());
+
+    /// <summary>
+    /// Voalle mixes date-only ("2018-08-20") and full timestamps ("2021-05-30T00:00:00")
+    /// across the financial endpoints, so parsing has to accept both.
+    /// </summary>
+    private static DateTime? ParseVoalleDate(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
+            ? parsed
+            : null;
+    }
+
     // Helper classes for parsing Voalle JSON structures
+
+    /// <summary>
+    /// Every Voalle endpoint wraps its payload in this envelope. The useful data is in
+    /// `response` — NOT `data`. Deserializing straight into a list silently yields empty
+    /// results with no error, which is how the previous version of this adapter failed.
+    /// Note that HTTP 200 does not imply success; always check <see cref="Success"/>.
+    /// </summary>
+    private class VoalleEnvelope<T>
+    {
+        [JsonPropertyName("success")]
+        public bool Success { get; set; }
+
+        [JsonPropertyName("response")]
+        public T? Response { get; set; }
+    }
+
     private class VoalleTokenResponse
     {
         [JsonPropertyName("access_token")]
@@ -450,8 +563,19 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
         [JsonPropertyName("phone")]
         public string? Phone { get; set; }
 
-        [JsonPropertyName("active")]
-        public bool Active { get; set; }
+        /// <summary>
+        /// Voalle exposes `status` as an int on the people payload (1 = active).
+        /// There is no boolean `active` field, despite what an earlier version assumed.
+        /// </summary>
+        [JsonPropertyName("status")]
+        public int Status { get; set; }
+
+        /// <summary>Null for CNPJ, filled for CPF — useful as a natural-person heuristic.</summary>
+        [JsonPropertyName("birthDate")]
+        public string? BirthDate { get; set; }
+
+        [JsonIgnore]
+        public bool IsActive => Status == 1;
     }
 
     private class VoalleContractResponse
@@ -466,30 +590,94 @@ public class VoalleAdapter : IExternalCustomerProvider, IExternalProductProvider
         public List<string>? ServiceProductCodes { get; set; }
     }
 
-    private class VoalleProductResponse
+    /// <summary>A contract type from crm/contracttypesandservices.</summary>
+    private class VoalleContractTypeResponse
     {
-        [JsonPropertyName("id")]
-        public object Id { get; set; } = null!;
+        [JsonPropertyName("code")]
+        public string? Code { get; set; }
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+
+        /// <summary>Allowed billing days for this contract type.</summary>
+        [JsonPropertyName("collectionDays")]
+        public List<int>? CollectionDays { get; set; }
+
+        [JsonPropertyName("contractTypesServiceProduct")]
+        public List<VoalleServiceProductResponse>? Services { get; set; }
+    }
+
+    /// <summary>
+    /// A service inside a contract type. `code` follows "{contractType}.{seq}" (e.g. "1.3")
+    /// and is stable per tenant but NOT global — always key it by (provider, code).
+    /// </summary>
+    private class VoalleServiceProductResponse
+    {
+        [JsonPropertyName("code")]
+        public string? Code { get; set; }
+
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
 
         [JsonPropertyName("description")]
         public string? Description { get; set; }
     }
 
-    private class VoalleInvoiceResponse
+    /// <summary>An entry from getopentitlesbytxid — the invoice fields live under `billet`.</summary>
+    private class VoalleOpenTitleResponse
     {
         [JsonPropertyName("id")]
-        public object Id { get; set; } = null!;
+        public object? Id { get; set; }
+
+        [JsonPropertyName("billet")]
+        public VoalleBilletResponse? Billet { get; set; }
+    }
+
+    private class VoalleBilletResponse
+    {
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        /// <summary>
+        /// Kept as string: this endpoint returns "2018-08-20" while getcontractbillets
+        /// returns "2021-05-30T00:00:00". Parsed by ParseVoalleDate.
+        /// </summary>
+        [JsonPropertyName("expirationDate")]
+        public string? ExpirationDate { get; set; }
+
+        [JsonPropertyName("typefulLine")]
+        public string? TypefulLine { get; set; }
+
+        [JsonPropertyName("pixQRCode")]
+        public string? PixQRCode { get; set; }
+
+        /// <summary>Only present on gettitlesbytxid: "Em aberto", "Paga", "Cancelada", "Vencida".</summary>
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
 
         [JsonPropertyName("amount")]
-        public decimal Amount { get; set; }
+        public VoalleAmountResponse? Amount { get; set; }
+    }
 
-        [JsonPropertyName("dueDate")]
-        public DateTime DueDate { get; set; }
+    private class VoalleAmountResponse
+    {
+        [JsonPropertyName("value")]
+        public decimal Value { get; set; }
 
-        [JsonPropertyName("status")]
-        public string Status { get; set; } = string.Empty; // PENDING, OVERDUE, PAID
+        /// <summary>Amount actually owed — includes fine, interest and discount.</summary>
+        [JsonPropertyName("finalValue")]
+        public decimal FinalValue { get; set; }
+
+        [JsonPropertyName("discount")]
+        public decimal Discount { get; set; }
+
+        [JsonPropertyName("fine")]
+        public decimal Fine { get; set; }
+
+        [JsonPropertyName("interest")]
+        public decimal Interest { get; set; }
     }
 }

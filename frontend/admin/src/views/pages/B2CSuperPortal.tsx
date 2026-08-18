@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { apiGet } from 'src/api/client';
+import { getCurrentTenant } from 'src/data/tenants';
 import CardBox from 'src/components/shared/CardBox';
 import { Button } from 'src/components/ui/button';
 import { Badge } from 'src/components/ui/badge';
@@ -19,12 +21,125 @@ import {
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 
+type SectionId = 'STATUS' | 'TICKETS' | 'READING' | 'CLUB';
+
+const SECTIONS: { id: SectionId; label: string; icon: typeof IconWifi }[] = [
+  { id: 'STATUS', label: 'Status de Conexão', icon: IconWifi },
+  { id: 'TICKETS', label: 'Suporte & Chamados', icon: IconHeadset },
+  { id: 'READING', label: 'Leitura Digital FIKTA', icon: IconBook },
+  { id: 'CLUB', label: 'Clube de Vantagens', icon: IconSparkles },
+];
+
+/**
+ * Estado da conexão do assinante.
+ *
+ * Vem de GET /api/v1/b2c/connection, que por sua vez lê /api/people/{id}/authentications
+ * na Portal V2 do ERP do provedor. Enquanto a integração não estiver configurada, a tela
+ * mostra "indisponível" — nunca um número de exemplo, porque um assinante vendo
+ * "512 Mbps" inventado enquanto está sem internet é pior do que não ver nada.
+ */
+interface ConnectionState {
+  planName: string | null;
+  contractNumber: string | null;
+  active: boolean | null;
+  downloadMbps: number | null;
+  uploadMbps: number | null;
+  signalQuality: string | null;
+  routerStatus: string | null;
+  uptime: string | null;
+  installAddress: string | null;
+}
+
+/** Oferta do Clube de Vantagens, cadastrada pela FIKTA ou pelo provedor. */
+interface ClubOffer {
+  id: string;
+  category: string;
+  partnerName: string;
+  description: string;
+  couponCode: string | null;
+  discountLabel: string | null;
+}
+
+/** Canais de atendimento do provedor, configurados em Personalizar Super Portal. */
+interface SupportChannels {
+  phone: string | null;
+  whatsapp: string | null;
+}
+
+/** Chamado do assinante no Service Desk do provedor. */
+interface Ticket {
+  protocol: string;
+  title: string;
+  status: string;
+  openedAt: string | null;
+}
+
 export default function B2CSuperPortal() {
   const navigate = useNavigate();
 
+  const [connection, setConnection] = useState<ConnectionState | null>(null);
+  const [channels, setChannels] = useState<SupportChannels | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+  const [clubOffers, setClubOffers] = useState<ClubOffer[]>([]);
+  const tenant = getCurrentTenant();
+
+  const session = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('fikta_user') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const subscriberName: string = session?.name || session?.username || '';
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<ConnectionState>('/api/v1/b2c/connection')
+      .then((data) => {
+        if (!cancelled) setConnection(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setConnectionError(err.message);
+      });
+
+    apiGet<SupportChannels>('/api/v1/b2c/support-channels')
+      .then((data) => {
+        if (!cancelled) setChannels(data);
+      })
+      .catch(() => {
+        // Canais são complementares: a ausência deles não deve poluir a tela com erro.
+      });
+
+    apiGet<{ tickets: Ticket[] }>('/api/v1/b2c/tickets')
+      .then((data) => {
+        if (!cancelled) setTickets(data.tickets ?? []);
+      })
+      .catch((err) => {
+        if (!cancelled) setTicketsError(err.message);
+      });
+
+    apiGet<{ offers: ClubOffer[] }>('/api/v1/b2c/club-offers')
+      .then((data) => {
+        if (!cancelled) setClubOffers(data.offers ?? []);
+      })
+      .catch(() => {
+        // Ofertas são complementares; ausência mostra estado vazio, não erro.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Exibe o valor só quando ele existe de fato; caso contrário deixa explícito que falta. */
+  const show = (value: string | number | null | undefined, suffix = '') =>
+    value === null || value === undefined || value === '' ? '—' : `${value}${suffix}`;
+
   const [isRebooting, setIsRebooting] = useState<boolean>(false);
   const [rebootMsg, setRebootMsg] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'STATUS' | 'TICKETS' | 'READING' | 'CLUB'>('STATUS');
+  const [activeTab, setActiveTab] = useState<SectionId>('STATUS');
 
   const handleReboot = () => {
     setIsRebooting(true);
@@ -42,12 +157,14 @@ export default function B2CSuperPortal() {
       <div className="bg-gradient-to-br from-[#0B1D3A] to-[#132a52] text-white p-5 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
         <div className="flex flex-col gap-5 relative z-10">
           <div>
-            <span className="bg-secondary text-[#0B1D3A] text-xs font-extrabold px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm mb-2">
-              <span className="w-2 h-2 rounded-full bg-[#0B1D3A] animate-ping"></span>
-              Plano Ativo (Contrato •••482)
-            </span>
+            {connection?.contractNumber && (
+              <span className="bg-secondary text-[#0B1D3A] text-xs font-extrabold px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm mb-2">
+                <span className="w-2 h-2 rounded-full bg-[#0B1D3A] animate-ping"></span>
+                Plano Ativo (Contrato {connection.contractNumber})
+              </span>
+            )}
             <h1 className="text-xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Olá, Carlos Eduardo! 👋
+              Olá{subscriberName ? `, ${subscriberName}` : ''}! 👋
             </h1>
             <p className="text-[#C6CEDD] text-sm sm:text-base mt-1 max-w-2xl font-medium">
               Consulte o status da sua fibra em tempo real, acesse livros e revistas digitais e solicite suporte instantâneo.
@@ -73,111 +190,109 @@ export default function B2CSuperPortal() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('STATUS')}
-          className={`whitespace-nowrap shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
-            activeTab === 'STATUS'
-              ? 'bg-primary text-white shadow-md'
-              : 'bg-white text-slate-700 border hover:bg-slate-50'
-          }`}
-        >
-          <IconWifi className="w-4 h-4" />
-          Status de Conexão
-        </button>
+      {/*
+        Sidebar de navegação + conteúdo.
+        Substitui a antiga barra de abas horizontal, que estourava a largura e obrigava
+        o usuário a rolar lateralmente para alcançar "Clube de Vantagens".
+        Em telas pequenas a sidebar vira uma grade de 2 colunas acima do conteúdo.
+      */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        <nav className="lg:w-64 shrink-0" aria-label="Seções do Super Portal">
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:sticky lg:top-24">
+            {SECTIONS.map(({ id, label, icon: SectionIcon }) => {
+              const isActive = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`w-full text-left px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2.5 ${
+                    isActive
+                      ? 'bg-primary text-white shadow-md'
+                      : 'bg-white text-slate-700 border hover:bg-slate-50'
+                  }`}
+                >
+                  <SectionIcon className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
 
-        <button
-          onClick={() => setActiveTab('TICKETS')}
-          className={`whitespace-nowrap shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
-            activeTab === 'TICKETS'
-              ? 'bg-primary text-white shadow-md'
-              : 'bg-white text-slate-700 border hover:bg-slate-50'
-          }`}
-        >
-          <IconHeadset className="w-4 h-4" />
-          Suporte & Chamados
-        </button>
-
-        <button
-          onClick={() => setActiveTab('READING')}
-          className={`whitespace-nowrap shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
-            activeTab === 'READING'
-              ? 'bg-primary text-white shadow-md'
-              : 'bg-white text-slate-700 border hover:bg-slate-50'
-          }`}
-        >
-          <IconBook className="w-4 h-4" />
-          Leitura Digital FIKTA
-        </button>
-
-        <button
-          onClick={() => setActiveTab('CLUB')}
-          className={`whitespace-nowrap shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
-            activeTab === 'CLUB'
-              ? 'bg-primary text-white shadow-md'
-              : 'bg-white text-slate-700 border hover:bg-slate-50'
-          }`}
-        >
-          <IconSparkles className="w-4 h-4" />
-          Clube de Vantagens
-        </button>
-      </div>
+        <div className="flex-1 min-w-0 space-y-6">
 
       {/* TAB CONTENT: STATUS */}
       {activeTab === 'STATUS' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 space-y-6">
             <CardBox className="p-6">
-              <div className="flex justify-between items-center border-b pb-4 mb-6">
-                <div>
+              <div className="flex flex-wrap gap-3 justify-between items-start border-b pb-4 mb-6">
+                <div className="min-w-0">
                   <span className="text-xs font-semibold text-slate-400 uppercase">Plano Contratado</span>
-                  <h2 className="text-xl font-extrabold text-slate-800">Fibra Ultra 500 Mega Turbo</h2>
-                  <p className="text-xs text-slate-500">Contrato •••482 • Conexão Segura & Protegida</p>
+                  <h2 className="text-xl font-extrabold text-slate-800 break-words">
+                    {show(connection?.planName)}
+                  </h2>
+                  {connection?.contractNumber && (
+                    <p className="text-xs text-slate-500">Contrato {connection.contractNumber}</p>
+                  )}
                 </div>
-                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 px-4 py-1.5 font-bold flex items-center gap-2 text-sm">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  CONEXÃO ATIVA
-                </Badge>
+                {connection?.active === true && (
+                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 px-4 py-1.5 font-bold flex items-center gap-2 text-sm shrink-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    CONEXÃO ATIVA
+                  </Badge>
+                )}
+                {connection?.active === false && (
+                  <Badge className="bg-red-100 text-red-800 border-red-300 px-4 py-1.5 font-bold flex items-center gap-2 text-sm shrink-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                    CONEXÃO INATIVA
+                  </Badge>
+                )}
               </div>
+
+              {connectionError && (
+                <div className="mb-6 p-4 rounded-2xl border border-amber-200 bg-amber-50 text-sm text-amber-800">
+                  <p className="font-bold mb-0.5">Dados de conexão indisponíveis</p>
+                  <p className="text-xs">{connectionError}</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 shadow-xs">
                   <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 mb-1.5">
                     <IconGauge className="w-4 h-4 text-primary stroke-[2.2]" /> Velocidade Download
                   </span>
-                  <span className="text-2xl font-black text-slate-800">512.4 Mbps</span>
+                  <span className="text-2xl font-black text-slate-800">{show(connection?.downloadMbps, " Mbps")}</span>
                 </div>
 
                 <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 shadow-xs">
                   <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 mb-1.5">
                     <IconGauge className="w-4 h-4 text-primary stroke-[2.2]" /> Velocidade Upload
                   </span>
-                  <span className="text-2xl font-black text-slate-800">256.1 Mbps</span>
+                  <span className="text-2xl font-black text-slate-800">{show(connection?.uploadMbps, " Mbps")}</span>
                 </div>
 
                 <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 shadow-xs">
                   <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 mb-1.5">
                     <IconActivity className="w-4 h-4 text-primary stroke-[2.2]" /> Qualidade do Sinal
                   </span>
-                  <span className="text-lg font-bold text-slate-800">Excelente (Sinal 100%)</span>
+                  <span className="text-lg font-bold text-slate-800">{show(connection?.signalQuality)}</span>
                 </div>
               </div>
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 mb-6 space-y-2 text-xs">
                 <div className="flex justify-between py-1 border-b">
                   <span className="text-slate-500">Status do Roteador:</span>
-                  <strong className="text-slate-700">Wi-Fi 6 (Conectado)</strong>
+                  <strong className="text-slate-700">{show(connection?.routerStatus)}</strong>
                 </div>
-                <div className="flex justify-between py-1 border-b">
+                <div className="flex flex-wrap justify-between gap-2 py-1 border-b">
                   <span className="text-slate-500">Tempo de Conexão:</span>
-                  <strong className="text-slate-700">14 dias, 08 horas e 22 min</strong>
+                  <strong className="text-slate-700">{show(connection?.uptime)}</strong>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-slate-500">Segurança da Rede:</span>
-                  <strong className="text-primary font-bold flex items-center gap-1">
-                    <IconShieldCheck className="w-4 h-4" /> Conexão Criptografada
-                  </strong>
+                <div className="flex flex-wrap justify-between gap-2 py-1">
+                  <span className="text-slate-500">Endereço de Instalação:</span>
+                  <strong className="text-slate-700 text-right">{show(connection?.installAddress)}</strong>
                 </div>
               </div>
 
@@ -220,24 +335,49 @@ export default function B2CSuperPortal() {
                 Atendimento humanizado 24h por dia.
               </p>
 
-              <div className="space-y-3 text-xs mb-5">
-                <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex justify-between">
-                  <span className="text-slate-400">Telefone 0800:</span>
-                  <strong className="text-emerald-400">0800 591 2000</strong>
+              {/*
+                Telefone e WhatsApp são do provedor, configurados em Personalizar Super
+                Portal. Cada bloco só aparece quando o canal existe — publicar um número
+                inventado leva o assinante a ligar para alguém que não é o provedor dele.
+              */}
+              {(channels?.phone || channels?.whatsapp) && (
+                <div className="space-y-3 text-xs mb-5">
+                  {channels.phone && (
+                    <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-wrap justify-between gap-2">
+                      <span className="text-slate-400">Telefone:</span>
+                      <strong className="text-emerald-400 break-all">{channels.phone}</strong>
+                    </div>
+                  )}
+                  {channels.whatsapp && (
+                    <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-wrap justify-between gap-2">
+                      <span className="text-slate-400">WhatsApp:</span>
+                      <strong className="text-emerald-400 break-all">{channels.whatsapp}</strong>
+                    </div>
+                  )}
                 </div>
-                <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex justify-between">
-                  <span className="text-slate-400">WhatsApp:</span>
-                  <strong className="text-emerald-400">(11) 98888-4000</strong>
-                </div>
-              </div>
+              )}
 
-              <Button
-                onClick={() => window.open('https://wa.me/5511988884000', '_blank')}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow"
-              >
-                <IconBrandWhatsapp className="w-5 h-5" />
-                Falar no WhatsApp
-              </Button>
+              {!channels?.phone && !channels?.whatsapp && (
+                <p className="text-xs text-slate-400 mb-5">
+                  Seu provedor ainda não cadastrou canais de atendimento.
+                </p>
+              )}
+
+              {channels?.whatsapp && (
+                <Button
+                  onClick={() =>
+                    window.open(
+                      `https://wa.me/55${channels.whatsapp!.replace(/\D/g, '')}`,
+                      '_blank',
+                      'noopener,noreferrer'
+                    )
+                  }
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow"
+                >
+                  <IconBrandWhatsapp className="w-5 h-5 shrink-0" />
+                  <span className="truncate">Falar no WhatsApp</span>
+                </Button>
+              )}
             </CardBox>
           </div>
         </div>
@@ -259,35 +399,45 @@ export default function B2CSuperPortal() {
             </Button>
           </div>
 
-          <div className="space-y-3">
-            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-md">#INC-84920</span>
-                  <span className="text-xs font-semibold text-slate-500">10/08/2026</span>
-                </div>
-                <h3 className="text-sm font-bold text-slate-800 mt-1">Solicitação de Ajuste de DNS e Troca de Senha Wi-Fi</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Atendente: Suporte Técnico LinkProvedor</p>
-              </div>
-              <Badge className="bg-emerald-100 text-emerald-800 font-bold px-3 py-1 text-xs">
-                RESOLVIDO
-              </Badge>
+          {/*
+            Chamados reais do assinante, lidos de GET /api/portal_solicitations na Portal V2
+            do ERP do provedor. Ver docs/architecture/VOALLE-PORTAL-V2-API.md §4.7.
+          */}
+          {tickets.length === 0 ? (
+            <div className="py-10 text-center space-y-2">
+              <IconHeadset className="w-10 h-10 mx-auto text-slate-300" />
+              <h3 className="font-bold text-slate-700">
+                {ticketsError ? 'Não foi possível carregar seus chamados' : 'Nenhum chamado registrado'}
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                {ticketsError ?? 'Quando você abrir uma solicitação, ela aparecerá aqui com o número de protocolo.'}
+              </p>
             </div>
-
-            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-cyan-700 bg-cyan-100 px-2.5 py-0.5 rounded-md">#INC-77102</span>
-                  <span className="text-xs font-semibold text-slate-500">01/08/2026</span>
+          ) : (
+            <div className="space-y-3">
+              {tickets.map((t) => (
+                <div
+                  key={t.protocol}
+                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-mono font-bold text-cyan-700 bg-cyan-100 px-2.5 py-0.5 rounded-md">
+                        #{t.protocol}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500">
+                        {t.openedAt ? new Date(t.openedAt).toLocaleDateString('pt-BR') : '—'}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-800 mt-1 break-words">{t.title}</h3>
+                  </div>
+                  <Badge className="bg-slate-200 text-slate-800 font-bold px-3 py-1 text-xs shrink-0">
+                    {t.status}
+                  </Badge>
                 </div>
-                <h3 className="text-sm font-bold text-slate-800 mt-1">Verificação de Sinal da Conexão</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Atendente: Equipe de Atendimento</p>
-              </div>
-              <Badge className="bg-emerald-100 text-emerald-800 font-bold px-3 py-1 text-xs">
-                RESOLVIDO
-              </Badge>
+              ))}
             </div>
-          </div>
+          )}
         </CardBox>
       )}
 
@@ -297,7 +447,7 @@ export default function B2CSuperPortal() {
           <div className="flex justify-between items-center border-b pb-4 mb-6">
             <div>
               <h2 className="text-xl font-bold text-slate-800">Acervo Digital FIKTA Incluso no seu Plano</h2>
-              <p className="text-xs text-slate-500">+12.000 livros digitais e revistas mensais renomadas</p>
+              <p className="text-xs text-slate-500">Livros e revistas liberados pelo seu provedor</p>
             </div>
             <Button
               onClick={() => navigate('/admin/digital-magazines')}
@@ -347,40 +497,53 @@ export default function B2CSuperPortal() {
       {activeTab === 'CLUB' && (
         <CardBox className="p-6">
           <div className="border-b pb-4 mb-6">
-            <h2 className="text-xl font-bold text-slate-800">Clube de Vantagens & Descontos</h2>
-            <p className="text-xs text-slate-500">Descontos exclusivos em parceiros nacionais para clientes do LinkProvedor</p>
+            <h2 className="text-xl font-bold text-slate-800">Clube de Vantagens</h2>
+            <p className="text-xs text-slate-500">
+              Ofertas de parceiros disponíveis para assinantes de {tenant.name}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-2xl border bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
-              <span className="text-xs font-bold text-amber-700 uppercase bg-amber-200/60 px-2.5 py-0.5 rounded-full">Cinema</span>
-              <h3 className="text-base font-bold text-slate-800 mt-2">Cinemark & UCI</h3>
-              <p className="text-xs text-slate-600 mt-1">50% de desconto em ingressos inteira para assinantes.</p>
-              <Button onClick={() => alert('Cupom copiado: CINEMA50LINK')} className="mt-3 w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 rounded-xl">
-                Pegar Cupom 50% OFF
-              </Button>
-            </div>
+          {/*
+            Ofertas reais, cadastradas pela FIKTA ou pelo provedor.
+            Origem: GET /api/v1/b2c/club-offers
 
-            <div className="p-4 rounded-2xl border bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-              <span className="text-xs font-bold text-blue-700 uppercase bg-blue-200/60 px-2.5 py-0.5 rounded-full">E-Commerce</span>
-              <h3 className="text-base font-bold text-slate-800 mt-2">Magalu & Fast Shop</h3>
-              <p className="text-xs text-slate-600 mt-1">Até 15% de desconto extra na compra de eletrônicos.</p>
-              <Button onClick={() => alert('Cupom copiado: DESCONTO15NET')} className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-xl">
-                Pegar Cupom 15% OFF
-              </Button>
+            As anteriores eram fictícias — "Cinemark 50%", cupom "CINEMA50LINK" — e citavam
+            um provedor que não é o do assinante logado. Cupom inventado é pior que nenhum:
+            o cliente tenta usar no caixa e passa vergonha.
+          */}
+          {clubOffers.length === 0 ? (
+            <div className="py-10 text-center space-y-2">
+              <IconSparkles className="w-10 h-10 mx-auto text-slate-300" />
+              <h3 className="font-bold text-slate-700">Nenhuma oferta disponível</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Seu provedor ainda não publicou ofertas no Clube de Vantagens.
+              </p>
             </div>
-
-            <div className="p-4 rounded-2xl border bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
-              <span className="text-xs font-bold text-emerald-700 uppercase bg-emerald-200/60 px-2.5 py-0.5 rounded-full">Farmácias</span>
-              <h3 className="text-base font-bold text-slate-800 mt-2">Drogasil & Raia</h3>
-              <p className="text-xs text-slate-600 mt-1">Até 30% de desconto em medicamentos e perfumaria.</p>
-              <Button onClick={() => alert('Cupom copiado: SAUDE30LINK')} className="mt-3 w-full bg-primary hover:bg-primary/90 text-white text-xs font-bold py-2 rounded-xl">
-                Pegar Cupom 30% OFF
-              </Button>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {clubOffers.map((offer) => (
+                <div key={offer.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col">
+                  <span className="text-xs font-bold text-slate-700 uppercase bg-slate-200/70 px-2.5 py-0.5 rounded-full self-start">
+                    {offer.category}
+                  </span>
+                  <h3 className="text-base font-bold text-slate-800 mt-2 break-words">{offer.partnerName}</h3>
+                  <p className="text-xs text-slate-600 mt-1 flex-1">{offer.description}</p>
+                  {offer.couponCode && (
+                    <Button
+                      onClick={() => navigator.clipboard?.writeText(offer.couponCode!)}
+                      className="mt-3 w-full bg-primary hover:bg-primary/90 text-white text-xs font-bold py-2 rounded-xl"
+                    >
+                      Copiar cupom {offer.discountLabel ? `· ${offer.discountLabel}` : ''}
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </CardBox>
       )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -5,5 +5,9 @@ namespace Fikta.Application.Common.Interfaces;
 
 public interface IExternalFinancialProvider
 {
-    Task<NormalizedFinancialDto?> GetCustomerFinancialStatusAsync(string customerExternalId, IntegrationSettings settings);
+    /// <summary>
+    /// Voalle keys its financial endpoints by CPF/CNPJ (txId), not by the internal person id,
+    /// so implementations receive the customer DOCUMENT here.
+    /// </summary>
+    Task<NormalizedFinancialDto?> GetCustomerFinancialStatusAsync(string customerDocument, IntegrationSettings settings);
 }

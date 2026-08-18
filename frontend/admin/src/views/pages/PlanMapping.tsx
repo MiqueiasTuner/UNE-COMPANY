@@ -6,6 +6,16 @@ import { catalogMappings, type CatalogMapping } from 'src/data/catalogMappings';
 type PlanMap = CatalogMapping;
 
 const PlanMapping = () => {
+  // Mapeamento é por provedor: o mesmo código de serviço significa coisas diferentes
+  // em ERPs distintos, então o vínculo nasce sempre dentro do tenant corrente.
+  const currentProviderId: string = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('fikta_user') || '{}')?.tenantId ?? '';
+    } catch {
+      return '';
+    }
+  })();
+
   const [mappings, setMappings] = useState<PlanMap[]>(catalogMappings);
 
   // Create Modal States
@@ -39,7 +49,8 @@ const PlanMapping = () => {
 
     const newMap: PlanMap = {
       id: Date.now().toString(),
-      planErpId: erpId,
+      providerId: currentProviderId,
+      externalCode: erpId,
       planErpName: erpName,
       productLinked: product,
       status: true
@@ -53,7 +64,7 @@ const PlanMapping = () => {
 
   const openEditModal = (map: PlanMap) => {
     setEditingMapping(map);
-    setEditErpId(map.planErpId);
+    setEditErpId(map.externalCode);
     setEditErpName(map.planErpName);
     setEditProduct(map.productLinked);
     setEditStatus(map.status);
@@ -68,7 +79,7 @@ const PlanMapping = () => {
       if (map.id === editingMapping.id) {
         return {
           ...map,
-          planErpId: editErpId,
+              externalCode: editErpId,
           planErpName: editErpName,
           productLinked: editProduct,
           status: editStatus
@@ -133,7 +144,7 @@ const PlanMapping = () => {
               ) : (
                 mappings.map((map) => (
                   <tr key={map.id} className="border-b border-border hover:bg-muted/5 transition-all">
-                    <td className="p-4 font-mono font-medium text-foreground">{map.planErpId}</td>
+                    <td className="p-4 font-mono font-medium text-foreground">{map.externalCode}</td>
                     <td className="p-4 font-medium text-foreground">{map.planErpName}</td>
                     <td className="p-4">
                       <span className="bg-lightprimary text-primary px-3 py-1 rounded-full text-xs font-bold font-mono">

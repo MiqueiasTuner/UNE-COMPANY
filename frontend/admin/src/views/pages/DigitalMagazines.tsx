@@ -11,18 +11,9 @@ interface Magazine {
   color: string;
 }
 
-const magazines: Magazine[] = [
-  { id: '1', title: 'Revista Julho 2026', month: 'Julho', year: '2026', category: 'Tecnologia & Inovação', downloads: '1.2k', color: 'from-cyan-500 to-blue-600' },
-  { id: '2', title: 'Revista Junho 2026', month: 'Junho', year: '2026', category: 'Negócios & Carreira', downloads: '2.5k', color: 'from-purple-500 to-indigo-600' },
-  { id: '3', title: 'Revista Maio 2026', month: 'Maio', year: '2026', category: 'Finanças & Economia', downloads: '3.1k', color: 'from-emerald-500 to-teal-600' },
-  { id: '4', title: 'Revista Abril 2026', month: 'Abril', year: '2026', category: 'Saúde & Bem-estar', downloads: '920', color: 'from-rose-500 to-red-600' },
-  { id: '5', title: 'Revista Março 2026', month: 'Março', year: '2026', category: 'Ciência & Espaço', downloads: '1.8k', color: 'from-amber-500 to-orange-600' },
-  { id: '6', title: 'Revista Fevereiro 2026', month: 'Fevereiro', year: '2026', category: 'Estilo de Vida', downloads: '1.4k', color: 'from-fuchsia-500 to-pink-600' },
-  { id: '7', title: 'Revista Janeiro 2026', month: 'Janeiro', year: '2026', category: 'Retrospectiva & Tendências', downloads: '4.2k', color: 'from-violet-500 to-purple-600' },
-  { id: '8', title: 'Revista Dezembro 2025', month: 'Dezembro', year: '2025', category: 'Especial Fim de Ano', downloads: '3.8k', color: 'from-sky-500 to-indigo-600' },
-  { id: '9', title: 'Revista Novembro 2025', month: 'Novembro', year: '2025', category: 'Educação & Sociedade', downloads: '850', color: 'from-teal-500 to-emerald-600' },
-  { id: '10', title: 'Revista Outubro 2025', month: 'Outubro', year: '2025', category: 'Cultura & Arte', downloads: '1.1k', color: 'from-orange-500 to-red-600' },
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/providers/{id}/magazines
+const magazines: Magazine[] = [];
 
 const DigitalMagazines = () => {
 

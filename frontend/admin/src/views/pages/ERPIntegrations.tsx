@@ -4,6 +4,11 @@ import CardBox from 'src/components/shared/CardBox';
 
 interface IntegrationConfig {
   id: string;
+  /**
+   * Provedor dono desta integração. Sem ele a tela não tem como isolar os tenants, e
+   * um admin de provedor acaba vendo o endpoint e o client_id do concorrente.
+   */
+  tenantId: string;
   erpType: string;
   endpointUrl: string;
   clientId: string;
@@ -18,36 +23,11 @@ interface IntegrationConfig {
   webhookUrl: string;
 }
 
-const initialConfigs: IntegrationConfig[] = [
-  {
-    id: '1',
-    erpType: 'VOALLE',
-    endpointUrl: 'https://api.voalle.com.br/external/v1',
-    clientId: 'integrador_une_technet',
-    status: true,
-    lastSync: '2026-08-10 15:30',
-    successRate: '99.8%',
-    latencyMs: 312,
-    circuitBreaker: 'FECHADO (Operacional)',
-    maxRetries: 3,
-    timeoutSec: 5,
-    webhookUrl: 'https://api.unebook.com.br/webhooks/v1/integrations/technet-voalle'
-  },
-  {
-    id: '2',
-    erpType: 'IXC_SOFT',
-    endpointUrl: 'https://ixc.technet.com.br/webservice/v1',
-    clientId: 'token_ixc_api_read',
-    status: false,
-    lastSync: 'N/A',
-    successRate: '0%',
-    latencyMs: 0,
-    circuitBreaker: 'FECHADO (Operacional)',
-    maxRetries: 3,
-    timeoutSec: 5,
-    webhookUrl: 'https://api.unebook.com.br/webhooks/v1/integrations/technet-ixc'
-  }
-];
+// O Voalle é auto-hospedado por provedor: cada ISP tem o próprio host, e o backend
+// anexa as portas 45700 (auth) e 45715 (API). Ver docs/architecture/VOALLE-API-REFERENCE.md
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/providers/{id}/integrations
+const initialConfigs: IntegrationConfig[] = [];
 
 const ERPIntegrations = () => {
   const [configs, setConfigs] = useState<IntegrationConfig[]>(initialConfigs);
@@ -80,6 +60,20 @@ const ERPIntegrations = () => {
   }, []);
 
   const isISP = user?.role === 'PROVIDER_ADMIN';
+
+  /**
+   * Isolamento entre tenants.
+   *
+   * A FIKTA (master) enxerga todas as integrações; um provedor enxerga apenas a sua.
+   * Sem este filtro, o admin da TechNet via o endpoint e o client_id da UNE — dado de
+   * um parceiro exposto a outro.
+   *
+   * Isto é a defesa da interface, não a única: o backend precisa filtrar por tenant
+   * também, porque quem chamar a API direto ignora esta camada por completo.
+   */
+  const visibleConfigs = isISP
+    ? configs.filter((cfg) => cfg.tenantId === user?.tenantId)
+    : configs;
 
   const toggleStatus = (id: string) => {
     if (isISP) return;
@@ -131,6 +125,7 @@ const ERPIntegrations = () => {
 
     const newCfg: IntegrationConfig = {
       id: Date.now().toString(),
+      tenantId: user?.tenantId ?? "",
       erpType,
       endpointUrl: url,
       clientId,
@@ -276,7 +271,7 @@ const ERPIntegrations = () => {
               </tr>
             </thead>
             <tbody>
-              {configs.map((cfg) => {
+              {visibleConfigs.map((cfg) => {
                 const isExpanded = expandedRowId === cfg.id;
                 return (
                   <>

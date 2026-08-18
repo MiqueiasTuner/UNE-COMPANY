@@ -188,8 +188,8 @@ integrations (
 -- Credenciais encriptadas (NUNCA em texto plano)
 integration_credentials (
   integration_id → integrations.id,
-  encrypted_client_id,      -- ex: "19681110000194"
-  encrypted_client_secret,  -- ex: "ffd8f69d40ec..."
+  encrypted_client_id,      -- ex: "<client_id do integrador>"
+  encrypted_client_secret,  -- ex: "<hash do client_secret>"
   encrypted_syndata,        -- Token Voalle específico
   encrypted_additional_secrets  -- JSONB para campos extras
 )

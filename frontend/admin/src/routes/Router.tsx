@@ -24,7 +24,12 @@ const Employees = Loadable(lazy(() => import('../views/pages/Employees')));
 const PlanMapping = Loadable(lazy(() => import('../views/pages/PlanMapping')));
 const DigitalMagazines = Loadable(lazy(() => import('../views/pages/DigitalMagazines')));
 const B2BProviders = Loadable(lazy(() => import('../views/pages/B2BProviders')));
+const PlatformModules = Loadable(lazy(() => import('../views/pages/PlatformModules')));
+const ProviderDetail = Loadable(lazy(() => import('../views/pages/providers/ProviderDetail')));
 const GlobalCatalog = Loadable(lazy(() => import('../views/pages/GlobalCatalog')));
+const BookForm = Loadable(lazy(() => import('../views/pages/catalog/BookForm')));
+const ErpSyncLogs = Loadable(lazy(() => import('../views/pages/logs/ErpSyncLogs')));
+const AccessLogs = Loadable(lazy(() => import('../views/pages/logs/AccessLogs')));
 const ERPIntegrations = Loadable(lazy(() => import('../views/pages/ERPIntegrations')));
 const ProviderConsumption = Loadable(lazy(() => import('../views/pages/ProviderConsumption')));
 const GlobalSettings = Loadable(lazy(() => import('../views/pages/GlobalSettings')));
@@ -63,7 +68,13 @@ const Router = [
       { path: '/admin/plan-mapping', element: <PlanMapping /> },
       { path: '/admin/digital-magazines', element: <DigitalMagazines /> },
       { path: '/admin/providers', element: <B2BProviders /> },
+      { path: '/admin/platform-modules', element: <PlatformModules /> },
+      { path: '/admin/erp-sync-logs', element: <ErpSyncLogs /> },
+      { path: '/admin/access-logs', element: <AccessLogs /> },
+      { path: '/admin/providers/:id', element: <ProviderDetail /> },
       { path: '/admin/global-catalog', element: <GlobalCatalog /> },
+      { path: '/admin/catalog/books/new', element: <BookForm /> },
+      { path: '/admin/catalog/books/:id', element: <BookForm /> },
       { path: '/admin/integrations', element: <ERPIntegrations /> },
       { path: '/admin/consumption', element: <ProviderConsumption /> },
       { path: '/admin/global-settings', element: <GlobalSettings /> },

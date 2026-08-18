@@ -22,6 +22,67 @@ namespace Fikta.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Fikta.Domain.Entities.AccessLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("BytesTransferred")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("ContentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentTitle")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId", "OccurredAt");
+
+                    b.HasIndex("ProviderId", "OccurredAt");
+
+                    b.HasIndex("ProviderId", "ContentType", "ContentId");
+
+                    b.ToTable("AccessLogs");
+                });
+
             modelBuilder.Entity("Fikta.Domain.Entities.Author", b =>
                 {
                     b.Property<Guid>("Id")
@@ -252,6 +313,9 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -262,13 +326,29 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("EligibilityCheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ExternalId")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDelinquent")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<decimal>("OverdueAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("OverdueDays")
+                        .HasColumnType("integer");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -285,6 +365,13 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("SyncSource")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -298,6 +385,10 @@ namespace Fikta.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ProviderId", "Email")
                         .IsUnique();
+
+                    b.HasIndex("ProviderId", "ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalId\" IS NOT NULL");
 
                     b.ToTable("Customers");
                 });
@@ -355,6 +446,78 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerBooks");
+                });
+
+            modelBuilder.Entity("Fikta.Domain.Entities.CustomerInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DisappearedFromErpAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExternalId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("IssueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("OriginalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("PixQrCode")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TitleNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TypefulLine")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProviderId", "ExternalId")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId", "Status", "DueDate");
+
+                    b.ToTable("CustomerInvoices");
                 });
 
             modelBuilder.Entity("Fikta.Domain.Entities.EmailDelivery", b =>
@@ -484,6 +647,63 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("EmailTemplates");
+                });
+
+            modelBuilder.Entity("Fikta.Domain.Entities.ErpSyncLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Endpoint")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("HttpStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("RecordCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Subject")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Vendor")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProviderId", "Operation", "CreatedAt");
+
+                    b.ToTable("ErpSyncLogs");
                 });
 
             modelBuilder.Entity("Fikta.Domain.Entities.ExternalProductMapping", b =>
@@ -682,6 +902,73 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.ToTable("Licenses");
                 });
 
+            modelBuilder.Entity("Fikta.Domain.Entities.Magazine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CoverUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileFormat")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PublisherId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("PublisherId");
+
+                    b.HasIndex("Year", "Month", "Status");
+
+                    b.ToTable("Magazines");
+                });
+
             modelBuilder.Entity("Fikta.Domain.Entities.Permission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -713,6 +1000,153 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.ToTable("Permissions");
                 });
 
+            modelBuilder.Entity("Fikta.Domain.Entities.PlatformModule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("RequiresErp")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Surface")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Modules");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("a1000000-0000-4000-8000-000000000001"),
+                            Code = "READING",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Acervo de livros digitais liberado pela FIKTA ao provedor.",
+                            Icon = "tabler:book",
+                            Name = "Leitura Digital",
+                            RequiresErp = false,
+                            SortOrder = 1,
+                            Status = "ACTIVE",
+                            Surface = "BOTH"
+                        },
+                        new
+                        {
+                            Id = new Guid("a1000000-0000-4000-8000-000000000002"),
+                            Code = "MAGAZINES",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Edições periódicas publicadas pela FIKTA e disponibilizadas por provedor.",
+                            Icon = "tabler:news",
+                            Name = "Revistas Digitais",
+                            RequiresErp = false,
+                            SortOrder = 2,
+                            Status = "ACTIVE",
+                            Surface = "BOTH"
+                        },
+                        new
+                        {
+                            Id = new Guid("a1000000-0000-4000-8000-000000000003"),
+                            Code = "CONNECTION_STATUS",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Situação do link do assinante, lida do ERP do provedor.",
+                            Icon = "tabler:wifi",
+                            Name = "Status de Conexão",
+                            RequiresErp = true,
+                            SortOrder = 3,
+                            Status = "ACTIVE",
+                            Surface = "B2C"
+                        },
+                        new
+                        {
+                            Id = new Guid("a1000000-0000-4000-8000-000000000004"),
+                            Code = "TICKETS",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Histórico e abertura de chamados no Service Desk do provedor.",
+                            Icon = "tabler:headset",
+                            Name = "Suporte & Chamados",
+                            RequiresErp = true,
+                            SortOrder = 4,
+                            Status = "ACTIVE",
+                            Surface = "B2C"
+                        },
+                        new
+                        {
+                            Id = new Guid("a1000000-0000-4000-8000-000000000005"),
+                            Code = "BILLING",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Faturas em aberto, linha digitável e segunda via, vindas do ERP.",
+                            Icon = "tabler:file-invoice",
+                            Name = "Faturas & Boletos",
+                            RequiresErp = true,
+                            SortOrder = 5,
+                            Status = "ACTIVE",
+                            Surface = "B2C"
+                        },
+                        new
+                        {
+                            Id = new Guid("a1000000-0000-4000-8000-000000000006"),
+                            Code = "CLUB",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Ofertas e cupons de parceiros comerciais.",
+                            Icon = "tabler:sparkles",
+                            Name = "Clube de Vantagens",
+                            RequiresErp = false,
+                            SortOrder = 6,
+                            Status = "ACTIVE",
+                            Surface = "B2C"
+                        },
+                        new
+                        {
+                            Id = new Guid("a1000000-0000-4000-8000-000000000007"),
+                            Code = "PORTAL_CUSTOMIZATION",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "White label do Super Portal: cores, logo e conteúdo do provedor.",
+                            Icon = "tabler:palette",
+                            Name = "Personalização do Portal",
+                            RequiresErp = false,
+                            SortOrder = 7,
+                            Status = "ACTIVE",
+                            Surface = "PROVIDER_ADMIN"
+                        });
+                });
+
             modelBuilder.Entity("Fikta.Domain.Entities.Provider", b =>
                 {
                     b.Property<Guid>("Id")
@@ -720,7 +1154,6 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Cnpj")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("CompanyName")
@@ -772,7 +1205,8 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Cnpj")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Cnpj\" IS NOT NULL");
 
                     b.HasIndex("Domain")
                         .IsUnique();
@@ -821,6 +1255,102 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ProviderBooks");
+                });
+
+            modelBuilder.Entity("Fikta.Domain.Entities.ProviderMagazine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AccessCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AssignedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("MagazineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MagazineId");
+
+                    b.HasIndex("ProviderId", "MagazineId")
+                        .IsUnique();
+
+                    b.ToTable("ProviderMagazines");
+                });
+
+            modelBuilder.Entity("Fikta.Domain.Entities.ProviderModule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GrantedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Settings")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("ProviderId", "ModuleId")
+                        .IsUnique();
+
+                    b.ToTable("ProviderModules");
                 });
 
             modelBuilder.Entity("Fikta.Domain.Entities.Publisher", b =>
@@ -1006,6 +1536,25 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Fikta.Domain.Entities.AccessLog", b =>
+                {
+                    b.HasOne("Fikta.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fikta.Domain.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Provider");
+                });
+
             modelBuilder.Entity("Fikta.Domain.Entities.Book", b =>
                 {
                     b.HasOne("Fikta.Domain.Entities.Author", "Author")
@@ -1114,6 +1663,25 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.Navigation("Provider");
                 });
 
+            modelBuilder.Entity("Fikta.Domain.Entities.CustomerInvoice", b =>
+                {
+                    b.HasOne("Fikta.Domain.Entities.Customer", "Customer")
+                        .WithMany("Invoices")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fikta.Domain.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Provider");
+                });
+
             modelBuilder.Entity("Fikta.Domain.Entities.EmailDelivery", b =>
                 {
                     b.HasOne("Fikta.Domain.Entities.Customer", "Customer")
@@ -1140,6 +1708,17 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("EmailDelivery");
+                });
+
+            modelBuilder.Entity("Fikta.Domain.Entities.ErpSyncLog", b =>
+                {
+                    b.HasOne("Fikta.Domain.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Provider");
                 });
 
             modelBuilder.Entity("Fikta.Domain.Entities.ExternalProductMapping", b =>
@@ -1194,6 +1773,21 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("Fikta.Domain.Entities.Magazine", b =>
+                {
+                    b.HasOne("Fikta.Domain.Entities.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId");
+
+                    b.HasOne("Fikta.Domain.Entities.Publisher", "Publisher")
+                        .WithMany()
+                        .HasForeignKey("PublisherId");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Publisher");
+                });
+
             modelBuilder.Entity("Fikta.Domain.Entities.Provider", b =>
                 {
                     b.HasOne("Fikta.Domain.Entities.Tenant", "Tenant")
@@ -1220,6 +1814,44 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Book");
+
+                    b.Navigation("Provider");
+                });
+
+            modelBuilder.Entity("Fikta.Domain.Entities.ProviderMagazine", b =>
+                {
+                    b.HasOne("Fikta.Domain.Entities.Magazine", "Magazine")
+                        .WithMany("ProviderMagazines")
+                        .HasForeignKey("MagazineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fikta.Domain.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Magazine");
+
+                    b.Navigation("Provider");
+                });
+
+            modelBuilder.Entity("Fikta.Domain.Entities.ProviderModule", b =>
+                {
+                    b.HasOne("Fikta.Domain.Entities.PlatformModule", "Module")
+                        .WithMany("ProviderModules")
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fikta.Domain.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
 
                     b.Navigation("Provider");
                 });
@@ -1284,6 +1916,11 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.Navigation("Books");
                 });
 
+            modelBuilder.Entity("Fikta.Domain.Entities.Customer", b =>
+                {
+                    b.Navigation("Invoices");
+                });
+
             modelBuilder.Entity("Fikta.Domain.Entities.EmailDelivery", b =>
                 {
                     b.Navigation("Logs");
@@ -1306,9 +1943,19 @@ namespace Fikta.Infrastructure.Persistence.Migrations
                     b.Navigation("Books");
                 });
 
+            modelBuilder.Entity("Fikta.Domain.Entities.Magazine", b =>
+                {
+                    b.Navigation("ProviderMagazines");
+                });
+
             modelBuilder.Entity("Fikta.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("Fikta.Domain.Entities.PlatformModule", b =>
+                {
+                    b.Navigation("ProviderModules");
                 });
 
             modelBuilder.Entity("Fikta.Domain.Entities.Provider", b =>

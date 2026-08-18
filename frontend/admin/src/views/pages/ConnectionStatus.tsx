@@ -35,53 +35,9 @@ interface ContractData {
   deviceInfo: string;
 }
 
-const mockContracts: ContractData[] = [
-  {
-    id: '1',
-    contractDisplay: 'Plano Principal (Contrato •••482)',
-    planName: 'Fibra Ultra 500 Mega + FIKTA E-books',
-    ispName: 'LinkProvedor Telecom',
-    status: 'ONLINE',
-    opticalSignal: 'Excelente (Sinal 100%)',
-    uptime: '14 dias, 08 horas e 22 min',
-    downloadSpeed: '512.4 Mbps',
-    uploadSpeed: '256.1 Mbps',
-    dataUsage: '482 GB',
-    dataLimit: 'Ilimitado',
-    address: 'Av. Paulista, 1000 - São Paulo/SP',
-    deviceInfo: 'Roteador Wi-Fi 6 (Conectado)',
-  },
-  {
-    id: '2',
-    contractDisplay: 'Plano Casa de Praia (Contrato •••821)',
-    planName: 'Fibra Gamer 1 Giga + Banca de Revistas',
-    ispName: 'NetFibra Telecom',
-    status: 'ONLINE',
-    opticalSignal: 'Ótimo (Sinal 98%)',
-    uptime: '45 dias, 12 horas',
-    downloadSpeed: '984.2 Mbps',
-    uploadSpeed: '492.0 Mbps',
-    dataUsage: '1.2 TB',
-    dataLimit: 'Ilimitado',
-    address: 'Rua das Flores, 450 - Campinas/SP',
-    deviceInfo: 'Roteador Wi-Fi 6 High Speed',
-  },
-  {
-    id: '3',
-    contractDisplay: 'Plano Escritório (Contrato •••094)',
-    planName: 'Fibra Residencial 300 Mega',
-    ispName: 'WebFibra Banda Larga',
-    status: 'DEGRADED',
-    opticalSignal: 'Atenção (Oscilação Detectada)',
-    uptime: '01 dia, 03 horas',
-    downloadSpeed: '120.5 Mbps',
-    uploadSpeed: '45.0 Mbps',
-    dataUsage: '210 GB',
-    dataLimit: 'Ilimitado',
-    address: 'Rua Afonso Pena, 89 - Belo Horizonte/MG',
-    deviceInfo: 'Modem Fibra Standard',
-  },
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/people/{personId}/authentications (Portal V2)
+const mockContracts: ContractData[] = [];
 
 const BCrumb = [
   { to: '/', title: 'Início' },

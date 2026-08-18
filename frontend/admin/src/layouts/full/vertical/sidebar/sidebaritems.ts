@@ -33,6 +33,14 @@ export interface MenuItem {
 
 import { uniqueId } from 'lodash';
 
+/**
+ * Menu da FIKTA (plataforma).
+ *
+ * A FIKTA é dona do produto: precisa alcançar tudo que o provedor alcança, mais o que só
+ * ela pode fazer — conceder módulos, auditar consumo e acompanhar a saúde das integrações
+ * de todos os parceiros. Uma versão anterior deste arquivo dava 5 itens à FIKTA contra 16
+ * do provedor, deixando a administradora com menos poder do que o próprio cliente.
+ */
 const masterSidebar: MenuItem[] = [
   {
     heading: 'Home',
@@ -54,6 +62,24 @@ const masterSidebar: MenuItem[] = [
         id: uniqueId(),
         url: '/admin/providers',
       },
+      {
+        name: 'Módulos por Provedor',
+        icon: 'solar:widget-add-linear',
+        id: uniqueId(),
+        url: '/admin/platform-modules',
+      },
+      {
+        name: 'Integrações ERP',
+        icon: 'solar:settings-bold-linear',
+        id: uniqueId(),
+        url: '/admin/integrations',
+      },
+      {
+        name: 'Consumo por Provedor',
+        icon: 'solar:chart-square-linear',
+        id: uniqueId(),
+        url: '/admin/consumption',
+      },
     ],
   },
   {
@@ -64,6 +90,69 @@ const masterSidebar: MenuItem[] = [
         icon: 'solar:bookmark-double-linear',
         id: uniqueId(),
         url: '/admin/global-catalog',
+      },
+      {
+        name: 'Revistas Digitais',
+        icon: 'solar:book-2-linear',
+        id: uniqueId(),
+        url: '/admin/digital-magazines',
+      },
+      {
+        name: 'Mapeamento de Planos',
+        icon: 'solar:sitemap-linear',
+        id: uniqueId(),
+        url: '/admin/plan-mapping',
+      },
+    ],
+  },
+  {
+    heading: 'Assinantes',
+    children: [
+      {
+        name: 'Subscrições (Global)',
+        icon: 'solar:users-group-two-rounded-linear',
+        id: uniqueId(),
+        url: '/admin/subscriptions',
+      },
+    ],
+  },
+  {
+    heading: 'Auditoria',
+    children: [
+      {
+        name: 'Logs de Acesso e Downloads',
+        icon: 'solar:clipboard-list-linear',
+        id: uniqueId(),
+        url: '/admin/access-logs',
+      },
+      {
+        name: 'Sincronizações com ERP',
+        icon: 'solar:refresh-circle-linear',
+        id: uniqueId(),
+        url: '/admin/erp-sync-logs',
+      },
+    ],
+  },
+  {
+    heading: 'Comunicação',
+    children: [
+      {
+        name: 'Banners',
+        icon: 'solar:gallery-linear',
+        id: uniqueId(),
+        url: '/admin/banners',
+      },
+      {
+        name: 'Templates E-mails',
+        icon: 'solar:letter-linear',
+        id: uniqueId(),
+        url: '/admin/email-templates',
+      },
+      {
+        name: 'Lojas Parceiras',
+        icon: 'solar:shop-linear',
+        id: uniqueId(),
+        url: '/admin/partner-stores',
       },
     ],
   },

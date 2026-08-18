@@ -1,5 +1,6 @@
 import LogoImg from "src/assets/images/logos/fikta-lockup-horizontal.svg";
 import LogoImgReverse from "src/assets/images/logos/fikta-lockup-reverse.svg";
+import { getCurrentTenant } from "src/data/tenants";
 
 interface FullLogoProps {
   /** Use "reverse" on navy/dark backgrounds (e.g. the sidebar) so the wordmark stays visible. */
@@ -7,19 +8,20 @@ interface FullLogoProps {
 }
 
 const FullLogo = ({ variant = 'default' }: FullLogoProps) => {
-  const userStr = localStorage.getItem('fikta_user');
-  const user = userStr ? JSON.parse(userStr) : null;
-  const isTechNet = user?.tenantId === 'technet';
+  const tenant = getCurrentTenant();
 
-  if (isTechNet) {
+  if (tenant.id !== 'fikta') {
     return (
       <div className="flex items-center justify-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#F86D72] to-[#51A8B1] flex items-center justify-center text-white font-extrabold shadow-sm">
-          TN
+        <div
+          className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-extrabold shadow-sm"
+          style={{ backgroundImage: `linear-gradient(to bottom right, ${tenant.colors.primary}, ${tenant.colors.secondary})` }}
+        >
+          {tenant.initials}
         </div>
         <span className="text-2xl font-black tracking-tighter uppercase">
-          <span className="text-[#F86D72]">TECH</span>
-          <span className="text-[#51A8B1]">NET</span>
+          <span style={{ color: tenant.colors.primary }}>{tenant.wordmark.lead}</span>
+          <span style={{ color: tenant.colors.secondary }}>{tenant.wordmark.tail}</span>
         </span>
       </div>
     );

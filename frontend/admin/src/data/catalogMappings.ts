@@ -1,29 +1,45 @@
-// Shared between PlanMapping (where FIKTA managers configure the catalogs) and
-// Subscriptions (where a Voalle contract's service-catalog code is matched against
-// these entries to know how many pre-configured books/titles a customer unlocks).
+// Vínculo entre um serviço do ERP do provedor e um catálogo da FIKTA.
+//
+// Consumido por PlanMapping (onde a FIKTA configura) e por Subscriptions (onde o contrato
+// de um assinante é resolvido para saber a quais títulos ele tem direito).
+//
+// A chave é o par (providerId, externalCode) — nunca o nome do plano. O `code` do serviço
+// no Voalle segue "{tipoContrato}.{sequencial}" e é estável por tenant, mas NÃO é global:
+// o código "1.3" da UNE TELECOM não é o mesmo serviço que o "1.3" da TechNet.
+// Ver docs/architecture/VOALLE-PORTAL-V2-API.md e VOALLE-API-REFERENCE.md §2.9.4.
 export interface CatalogMapping {
   id: string;
-  planErpId: string;
+  /** Provedor dono do mapeamento. Sem ele os códigos de ERPs diferentes colidem. */
+  providerId: string;
+  /** Código do serviço no ERP do provedor, ex.: "1.3". Chave real do vínculo. */
+  externalCode: string;
+  /** Nome do serviço no ERP, apenas para o operador reconhecer na tela. */
   planErpName: string;
+  /** Catálogo da FIKTA liberado por este serviço. */
   productLinked: string;
+  /** Quantidade de títulos no catálogo — calculada no backend, não digitada. */
   bookCount: number;
   status: boolean;
 }
 
-export const catalogMappings: CatalogMapping[] = [
-  { id: '1', planErpId: '101', planErpName: '500 Mega + FIKTA Ouro', productLinked: 'Biblioteca Gold', bookCount: 260, status: true },
-  { id: '2', planErpId: '102', planErpName: '1 Giga Ultra Diamante', productLinked: 'Biblioteca Diamante', bookCount: 480, status: true },
-  { id: '3', planErpId: '205', planErpName: 'Plano Combo Família Bronze', productLinked: 'Banca Standard', bookCount: 80, status: true },
-  { id: '4', planErpId: '304', planErpName: 'Banda Larga Comercial Gold', productLinked: 'Banca Premium', bookCount: 150, status: false },
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/providers/{id}/plan-mappings
+export const catalogMappings: CatalogMapping[] = [];
 
-/** Loosely match a Voalle service-catalog / contract label against a configured FIKTA catalog by name. */
-export function matchCatalogByLabel(label: string): CatalogMapping | undefined {
-  const normalized = label.trim().toLowerCase();
-  if (!normalized) return undefined;
-  return catalogMappings.find((m) => {
-    const name = m.planErpName.toLowerCase();
-    const product = m.productLinked.toLowerCase();
-    return normalized.includes(name) || name.includes(normalized) || normalized.includes(product) || product.includes(normalized);
-  });
+/**
+ * Resolve o catálogo da FIKTA a partir do código de serviço do ERP, dentro do provedor.
+ *
+ * Substitui o casamento por nome que existia antes: comparar rótulos livres ("500 Mega +
+ * FIKTA Ouro") quebra quando o provedor renomeia o plano no ERP, e pior, pode casar o
+ * plano errado por coincidência de palavra. O código é o identificador de verdade.
+ */
+export function matchCatalogByCode(
+  providerId: string,
+  externalCode: string,
+  mappings: CatalogMapping[] = catalogMappings
+): CatalogMapping | undefined {
+  if (!providerId || !externalCode) return undefined;
+  return mappings.find(
+    (m) => m.providerId === providerId && m.externalCode === externalCode && m.status
+  );
 }

@@ -47,3 +47,17 @@ pnpm-lock.yaml
 
 # Templates node_modules (recursive safeguard)
 **/node_modules/
+
+# .NET build outputs
+# Estavam versionados por falta desta regra: 503 DLLs/EXEs/PDBs entravam em cada commit,
+# inflando o repositório e poluindo todo diff com ruído binário.
+[Bb]in/
+[Oo]bj/
+*.user
+*.dll
+*.pdb
+*.exe
+*.cache
+
+# Segredos de desenvolvimento (ficam em %APPDATA%, nunca no repositório)
+secrets.json

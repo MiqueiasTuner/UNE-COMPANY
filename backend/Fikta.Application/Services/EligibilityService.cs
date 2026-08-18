@@ -134,7 +134,8 @@ public class EligibilityService : IEligibilityService
         var providerSettings = ParseProviderSettings(customer.Provider.Settings);
         if (providerSettings.BlockIfDelinquent)
         {
-            var financial = await _financialProvider.GetCustomerFinancialStatusAsync(externalCustomer.ExternalId, settings);
+            // Financial endpoints are keyed by CPF/CNPJ, not by the internal person id.
+            var financial = await _financialProvider.GetCustomerFinancialStatusAsync(externalCustomer.Document, settings);
             if (financial != null && financial.IsDelinquent)
             {
                 var overdueTitlesCount = financial.PendingInvoices.Count(pi => pi.Status == "OVERDUE");

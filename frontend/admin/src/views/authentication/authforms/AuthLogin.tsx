@@ -5,6 +5,100 @@ import { Checkbox } from 'src/components/ui/checkbox';
 import { Input } from 'src/components/ui/input';
 import { Label } from 'src/components/ui/label';
 
+type Role = 'UNE_ADMIN' | 'PROVIDER_ADMIN' | 'CUSTOMER';
+
+interface DemoAccount {
+  /** Rótulo exibido no bloco de credenciais de teste. */
+  label: string;
+  /** Classe Tailwind do marcador colorido. */
+  accent: string;
+  /** Usuário e senha "canônicos" — os que aparecem na tela. */
+  username: string;
+  password: string;
+  /** Formas alternativas de digitar o mesmo login (e-mails, apelidos legados). */
+  aliases?: string[];
+  /** Senhas alternativas aceitas. */
+  altPasswords?: string[];
+  role: Role;
+  tenantId: string;
+  tenantName: string;
+  /**
+   * CPF/CNPJ do assinante. É a chave usada nas consultas ao ERP Voalle
+   * (people/txid, getopentitlesbytxid) — ver docs/architecture/VOALLE-API-REFERENCE.md
+   */
+  document?: string;
+}
+
+const demoAccounts: DemoAccount[] = [
+  {
+    label: 'FIKTA Master (Global Admin)',
+    accent: 'bg-primary text-primary',
+    username: 'master',
+    password: 'master',
+    aliases: ['master@fikta.com.br'],
+    altPasswords: ['fikta@123'],
+    role: 'UNE_ADMIN',
+    tenantId: 'fikta',
+    tenantName: 'FIKTA (Master)',
+  },
+  {
+    label: 'TechNet (Provedor ISP)',
+    accent: 'bg-secondary text-secondary',
+    username: 'technet',
+    password: 'technet',
+    aliases: ['test@technet.com.br', 'admin', 'admin@fikta.com.br'],
+    altPasswords: ['admin', 'fikta@123'],
+    role: 'PROVIDER_ADMIN',
+    tenantId: 'technet',
+    tenantName: 'TechNet Telecom',
+  },
+  {
+    label: 'Cliente Final TechNet (Leitor B2C)',
+    accent: 'bg-emerald-500 text-emerald-500',
+    username: 'cliente',
+    password: 'cliente',
+    aliases: ['cliente@technet.com.br', 'user'],
+    altPasswords: ['cliente123'],
+    role: 'CUSTOMER',
+    tenantId: 'technet',
+    tenantName: 'TechNet Telecom',
+    document: '11122233396',
+  },
+  {
+    label: 'UNE TELECOM (Provedor ISP)',
+    accent: 'bg-[#0B5FFF] text-[#0B5FFF]',
+    username: 'une',
+    password: 'une',
+    aliases: ['une@unetelecom.com.br', 'unetelecom'],
+    altPasswords: ['une@123'],
+    role: 'PROVIDER_ADMIN',
+    tenantId: 'une',
+    tenantName: 'UNE TELECOM',
+  },
+  {
+    label: 'Cliente Final UNE (Leitor B2C)',
+    accent: 'bg-[#FF8A00] text-[#FF8A00]',
+    username: 'uneclient',
+    password: 'uneclient',
+    aliases: ['cliente@unetelecom.com.br', 'unecliente'],
+    altPasswords: ['unecliente'],
+    role: 'CUSTOMER',
+    tenantId: 'une',
+    tenantName: 'UNE TELECOM',
+    document: '52998224725',
+  },
+];
+
+/** Casa o que foi digitado contra a tabela de contas de demonstração. */
+function matchAccount(username: string, password: string): DemoAccount | undefined {
+  const user = username.trim().toLowerCase();
+  return demoAccounts.find((acc) => {
+    const users = [acc.username, ...(acc.aliases ?? [])].map((u) => u.toLowerCase());
+    const passwords = [acc.password, ...(acc.altPasswords ?? [])];
+    return users.includes(user) && passwords.includes(password);
+  });
+}
+
 const AuthLogin = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -15,49 +109,25 @@ const AuthLogin = () => {
     e.preventDefault();
     setError('');
 
-    let userSession = null;
+    const account = matchAccount(username, password);
 
-    if (
-      (username === 'master' || username === 'master@fikta.com.br') &&
-      (password === 'master' || password === 'fikta@123')
-    ) {
-      userSession = {
-        username: 'master',
-        role: 'UNE_ADMIN',
-        tenantId: 'fikta',
-        tenantName: 'FIKTA (Master)',
-        loginTime: new Date().toISOString()
-      };
-    } else if (
-      (username === 'technet' || username === 'test@technet.com.br' || username === 'admin' || username === 'admin@fikta.com.br') &&
-      (password === 'technet' || password === 'admin' || password === 'fikta@123')
-    ) {
-      userSession = {
-        username: 'technet',
-        role: 'PROVIDER_ADMIN',
-        tenantId: 'technet',
-        tenantName: 'TechNet',
-        loginTime: new Date().toISOString()
-      };
-    } else if (
-      (username === 'cliente' || username === 'cliente@technet.com.br' || username === 'user') && 
-      (password === 'cliente' || password === 'cliente123')
-    ) {
-      userSession = {
-        username: 'cliente',
-        role: 'CUSTOMER',
-        tenantId: 'technet',
-        tenantName: 'TechNet Telecom',
-        loginTime: new Date().toISOString()
-      };
+    if (!account) {
+      setError('Credenciais inválidas! Utilize uma das contas listadas abaixo.');
+      return;
     }
 
-    if (userSession) {
-      localStorage.setItem('fikta_user', JSON.stringify(userSession));
-      navigate('/');
-    } else {
-      setError('Credenciais inválidas! Utilize "master", "technet" ou "cliente" conforme listado abaixo.');
-    }
+    localStorage.setItem(
+      'fikta_user',
+      JSON.stringify({
+        username: account.username,
+        role: account.role,
+        tenantId: account.tenantId,
+        tenantName: account.tenantName,
+        document: account.document,
+        loginTime: new Date().toISOString(),
+      })
+    );
+    navigate('/');
   };
 
   return (
@@ -72,12 +142,12 @@ const AuthLogin = () => {
           <div className="mb-2 block">
             <Label htmlFor="username">Usuário</Label>
           </div>
-          <Input 
-            id="username" 
-            type="text" 
+          <Input
+            id="username"
+            type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="master, technet ou cliente"
+            placeholder="master, technet, cliente, une ou uneclient"
             required
           />
         </div>
@@ -85,9 +155,9 @@ const AuthLogin = () => {
           <div className="mb-2 block">
             <Label htmlFor="userpwd">Senha</Label>
           </div>
-          <Input 
-            id="userpwd" 
-            type="password" 
+          <Input
+            id="userpwd"
+            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
@@ -112,38 +182,32 @@ const AuthLogin = () => {
 
       {/* Test credentials helper block */}
       <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border space-y-4">
-        <div>
-          <p className="text-xs font-bold text-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5 text-primary">
-            <span className="h-2 w-2 rounded-full bg-primary" />
-            1. FIKTA Master (Global Admin)
-          </p>
-          <div className="text-xs text-muted-foreground space-y-1 pl-3.5">
-            <p><span className="font-semibold text-foreground">Usuário:</span> master</p>
-            <p><span className="font-semibold text-foreground">Senha:</span> master</p>
-          </div>
-        </div>
-        
-        <div className="border-t border-border pt-3">
-          <p className="text-xs font-bold text-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5 text-secondary">
-            <span className="h-2 w-2 rounded-full bg-secondary" />
-            2. TechNet (Teste ISP Local)
-          </p>
-          <div className="text-xs text-muted-foreground space-y-1 pl-3.5">
-            <p><span className="font-semibold text-foreground">Usuário:</span> technet</p>
-            <p><span className="font-semibold text-foreground">Senha:</span> technet</p>
-          </div>
-        </div>
-
-        <div className="border-t border-border pt-3">
-          <p className="text-xs font-bold text-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5 text-emerald-500">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            3. Cliente Final ISP (Leitor B2C)
-          </p>
-          <div className="text-xs text-muted-foreground space-y-1 pl-3.5">
-            <p><span className="font-semibold text-foreground">Usuário:</span> cliente</p>
-            <p><span className="font-semibold text-foreground">Senha:</span> cliente</p>
-          </div>
-        </div>
+        {demoAccounts.map((acc, i) => {
+          const [dotColor, textColor] = acc.accent.split(' ');
+          return (
+            <div key={acc.username} className={i > 0 ? 'border-t border-border pt-3' : undefined}>
+              <p
+                className={`text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 ${textColor}`}
+              >
+                <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+                {i + 1}. {acc.label}
+              </p>
+              <div className="text-xs text-muted-foreground space-y-1 pl-3.5">
+                <p>
+                  <span className="font-semibold text-foreground">Usuário:</span> {acc.username}
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Senha:</span> {acc.password}
+                </p>
+                {acc.document && (
+                  <p>
+                    <span className="font-semibold text-foreground">CPF (ERP):</span> {acc.document}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </>
   );

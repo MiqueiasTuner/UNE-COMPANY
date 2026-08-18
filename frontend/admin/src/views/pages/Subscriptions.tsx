@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
 import CardBox from 'src/components/shared/CardBox';
+import { getCurrentTenant } from 'src/data/tenants';
 
 interface Subscription {
   id: string;
@@ -20,135 +21,9 @@ interface Subscription {
   historicoSync: { data: string; descricao: string }[];
 }
 
-const initialSubscriptions: Subscription[] = [
-  { 
-    id: '1', 
-    codigoExterno: 'Não informado', 
-    cpfCnpj: '049.283.473-10', 
-    convenio: 'TechNet', 
-    plano: 'Diamante', 
-    ativado: true, 
-    expiraEm: 'Não definido', 
-    criadoEm: '14/05/2025',
-    nomeCliente: 'Ricardo Silva Santos',
-    erpPlan: '300 Mega Fibra + FIKTA Diamante',
-    financeiroStatus: 'Adimplente',
-    email: 'ricardo.santos@gmail.com',
-    telefone: '(11) 99877-2233',
-    historicoSync: [
-      { data: '14/05/2025 09:20', descricao: 'Subscrição criada via Painel Administrativo.' }
-    ]
-  },
-  { 
-    id: '2', 
-    codigoExterno: 'Não informado', 
-    cpfCnpj: '293.484.283-92', 
-    convenio: 'TechNet', 
-    plano: 'Ouro', 
-    ativado: true, 
-    expiraEm: 'Não definido', 
-    criadoEm: '15/05/2025',
-    nomeCliente: 'Juliana Costa Martins',
-    erpPlan: '400 Mega Premium + FIKTA Ouro',
-    financeiroStatus: 'Adimplente',
-    email: 'juliana.martins@outlook.com',
-    telefone: '(21) 98888-1111',
-    historicoSync: [
-      { data: '15/05/2025 14:35', descricao: 'Cadastrada subscrição local para teste.' }
-    ]
-  },
-  { 
-    id: '3', 
-    codigoExterno: 'Não informado', 
-    cpfCnpj: '928.384.729-38', 
-    convenio: 'TechNet', 
-    plano: 'Ouro', 
-    ativado: true, 
-    expiraEm: 'Não definido', 
-    criadoEm: '15/05/2025',
-    nomeCliente: 'Fernando Oliveira Sousa',
-    erpPlan: 'Nenhum plano ERP ativo',
-    financeiroStatus: 'Atrasado',
-    email: 'fernando.sousa@hotmail.com',
-    telefone: '(31) 97766-5544',
-    historicoSync: [
-      { data: '15/05/2025 18:10', descricao: 'Tentativa de sincronização falhou: Cliente com pendência financeira.' }
-    ]
-  },
-  { 
-    id: '4', 
-    codigoExterno: 'VOALLE-1002', 
-    cpfCnpj: '192.839.294-82', 
-    convenio: 'TechNet', 
-    plano: 'Diamante', 
-    ativado: true, 
-    expiraEm: '20/12/2026', 
-    criadoEm: '16/05/2025',
-    nomeCliente: 'Mariana Albuquerque Cruz',
-    erpPlan: '500 Mega Ultra + FIKTA Diamante',
-    financeiroStatus: 'Adimplente',
-    email: 'mariana.cruz@yahoo.com.br',
-    telefone: '(41) 99555-8888',
-    historicoSync: [
-      { data: '16/05/2025 10:15', descricao: 'API Voalle: Integração automática bem-sucedida.' },
-      { data: '10/08/2026 12:00', descricao: 'Renovação de acesso processada pelo ERP.' }
-    ]
-  },
-  { 
-    id: '5', 
-    codigoExterno: 'Não informado', 
-    cpfCnpj: '384.829.482-93', 
-    convenio: 'TechNet', 
-    plano: 'Prata', 
-    ativado: false, 
-    expiraEm: 'Expirado', 
-    criadoEm: '16/05/2025',
-    nomeCliente: 'Bruno Henrique Pereira',
-    erpPlan: '150 Mega Básico SVA',
-    financeiroStatus: 'Bloqueado',
-    email: 'bruno.pereira@gmail.com',
-    telefone: '(51) 98877-6655',
-    historicoSync: [
-      { data: '16/05/2025 15:40', descricao: 'Subscrição desativada por bloqueio financeiro no ERP.' }
-    ]
-  },
-  { 
-    id: '6', 
-    codigoExterno: 'IXC-492', 
-    cpfCnpj: '482.910.392-83', 
-    convenio: 'TechNet', 
-    plano: 'Bronze', 
-    ativado: true, 
-    expiraEm: 'Não definido', 
-    criadoEm: '17/05/2025',
-    nomeCliente: 'Ana Paula de Souza',
-    erpPlan: '200 Mega Combo + FIKTA Bronze',
-    financeiroStatus: 'Adimplente',
-    email: 'ana.souza@icloud.com',
-    telefone: '(81) 99111-2233',
-    historicoSync: [
-      { data: '17/05/2025 11:22', descricao: 'API IXC Soft: Autenticado com sucesso via token.' }
-    ]
-  },
-  { 
-    id: '7', 
-    codigoExterno: 'Não informado', 
-    cpfCnpj: '582.948.293-10', 
-    convenio: 'TechNet', 
-    plano: 'Diamante', 
-    ativado: true, 
-    expiraEm: 'Não definido', 
-    criadoEm: '18/05/2025',
-    nomeCliente: 'Lucas Medeiros Costa',
-    erpPlan: '600 Mega Gamer + FIKTA Diamante',
-    financeiroStatus: 'Adimplente',
-    email: 'lucas.medeiros@gmail.com',
-    telefone: '(19) 98822-7711',
-    historicoSync: [
-      { data: '18/05/2025 16:45', descricao: 'Subscrição criada localmente.' }
-    ]
-  },
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/providers/{id}/subscribers
+const initialSubscriptions: Subscription[] = [];
 
 const Subscriptions = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
@@ -202,6 +77,8 @@ const Subscriptions = () => {
   // State for Modal ERP Search
   const [erpSearchQuery, setErpSearchQuery] = useState('');
   const [isSearchingErp, setIsSearchingErp] = useState(false);
+  const [isSavingSubscriber, setIsSavingSubscriber] = useState(false);
+  const currentTenantName = getCurrentTenant().name;
   const [erpSearchResults, setErpSearchResults] = useState<{
     id: string;
     nome: string;
@@ -215,15 +92,9 @@ const Subscriptions = () => {
   const [erpSearchStatus, setErpSearchStatus] = useState<string | null>(null);
 
   // Mock Voalle ERP Database for Master User Search Demonstrations
-  const masterVoalleDatabase = [
-    { id: '1001', nome: 'Ricardo Silva Santos', cpfCnpj: '049.283.473-10', email: 'ricardo.santos@technet.com.br', telefone: '(11) 99877-2233', codigoErp: 'VOALLE-1001', planoErp: '300MB Fibra + FIKTA Diamante', financeiro: 'Adimplente' as const },
-    { id: '1002', nome: 'Juliana Costa Martins', cpfCnpj: '293.484.283-92', email: 'juliana.martins@technet.com.br', telefone: '(21) 98888-1111', codigoErp: 'VOALLE-1002', planoErp: '400MB Premium + FIKTA Ouro', financeiro: 'Adimplente' as const },
-    { id: '1003', nome: 'Fernando Oliveira Sousa', cpfCnpj: '928.384.729-38', email: 'fernando.sousa@technet.com.br', telefone: '(31) 97766-5544', codigoErp: 'VOALLE-1003', planoErp: '200MB Fibra SVA', financeiro: 'Atrasado' as const },
-    { id: '1004', nome: 'Mariana Albuquerque Cruz', cpfCnpj: '192.839.294-82', email: 'mariana.cruz@technet.com.br', telefone: '(41) 99555-8888', codigoErp: 'VOALLE-1004', planoErp: '500MB Ultra + FIKTA Diamante', financeiro: 'Adimplente' as const },
-    { id: '1005', nome: 'Bruno Henrique Pereira', cpfCnpj: '384.829.482-93', email: 'bruno.pereira@technet.com.br', telefone: '(51) 98877-6655', codigoErp: 'VOALLE-1005', planoErp: '150MB Básico', financeiro: 'Bloqueado' as const },
-    { id: '1006', nome: 'Ana Paula de Souza', cpfCnpj: '482.910.392-83', email: 'ana.souza@technet.com.br', telefone: '(81) 99111-2233', codigoErp: 'VOALLE-1006', planoErp: '300MB Combo + FIKTA Bronze', financeiro: 'Adimplente' as const },
-    { id: '1007', nome: 'Lucas Medeiros Costa', cpfCnpj: '582.948.293-10', email: 'lucas.medeiros@technet.com.br', telefone: '(19) 98822-7711', codigoErp: 'VOALLE-1007', planoErp: '600MB Gamer + FIKTA Diamante', financeiro: 'Adimplente' as const }
-  ];
+  // Dados reais vêm da API — não popular com exemplos.
+// Origem: POST /api/v1/erp/search-customer
+const masterVoalleDatabase = [];
 
   const handleConsultVoalleInModal = async () => {
     const term = erpSearchQuery.trim() || newCpf.trim();
@@ -298,37 +169,84 @@ const Subscriptions = () => {
     setErpSearchStatus(`✅ Assinante "${item.nome}" selecionado (plano ERP: ${item.planoErp}). Escolha o plano FIKTA e clique em Salvar.`);
   };
 
-  const handleCreateSubscription = (e: React.FormEvent) => {
+  /**
+   * Persists the subscriber by asking the backend to (re)import them from the provider's
+   * ERP. The backend is the only thing that talks to Voalle — it upserts the Customer,
+   * mirrors the open invoices and materialises the delinquency verdict in one round trip.
+   *
+   * The row only enters the local list after the API confirms, so what the operator sees
+   * is what is actually in the database.
+   */
+  const handleCreateSubscription = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCpf || !newNome) return;
 
-    const newSub: Subscription = {
-      id: Date.now().toString(),
-      codigoExterno: newCodigo || `VOALLE-${Math.floor(1000 + Math.random() * 8999)}`,
-      cpfCnpj: newCpf,
-      convenio: 'TechNet',
-      plano: newPlano,
-      ativado: true,
-      expiraEm: 'Não definido',
-      criadoEm: new Date().toLocaleDateString('pt-BR'),
-      nomeCliente: newNome,
-      erpPlan: '500MB Fibra SVA (Voalle ERP)',
-      financeiroStatus: erpSearchStatus?.includes('PENDÊNCIA') ? 'Atrasado' : 'Adimplente',
-      email: newEmail || 'N/A',
-      telefone: newTelefone || 'N/A',
-      historicoSync: [
-        { data: new Date().toLocaleString('pt-BR').substring(0, 16), descricao: 'Subscrição cadastrada/importada via Voalle ERP API.' }
-      ]
-    };
+    setIsSavingSubscriber(true);
+    setErpSearchStatus('Gravando assinante e sincronizando faturas do ERP...');
 
-    setSubscriptions([newSub, ...subscriptions]);
-    setNewCpf('');
-    setNewCodigo('');
-    setNewNome('');
-    setNewEmail('');
-    setNewTelefone('');
-    setErpSearchStatus(null);
-    setIsModalOpen(false);
+    try {
+      const payload = JSON.stringify({ document: newCpf });
+      let res = await fetch('/api/v1/erp/import-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+
+      // The Vite proxy 404s when the backend is not up; retry the API directly so the
+      // operator gets the real backend error instead of a confusing proxy 404.
+      if (res.status === 404) {
+        res = await fetch('http://localhost:5089/api/v1/erp/import-customer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        });
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErpSearchStatus(`❌ Não foi possível gravar: ${data.error || data.message || `HTTP ${res.status}`}`);
+        return;
+      }
+
+      const saved = data.customer ?? {};
+      const newSub: Subscription = {
+        id: saved.id ?? Date.now().toString(),
+        codigoExterno: saved.externalId ? `VOALLE-${saved.externalId}` : newCodigo || 'Sem código no ERP',
+        cpfCnpj: saved.document ?? newCpf,
+        convenio: currentTenantName,
+        plano: newPlano,
+        ativado: saved.status === 'ACTIVE',
+        expiraEm: 'Não definido',
+        criadoEm: new Date().toLocaleDateString('pt-BR'),
+        nomeCliente: saved.name ?? newNome,
+        erpPlan: data.voalleContracts?.[0]?.serviceProductCodes?.join(', ') || 'Sem contrato ativo no ERP',
+        financeiroStatus: saved.isDelinquent ? 'Atrasado' : 'Adimplente',
+        email: saved.email ?? newEmail ?? 'N/A',
+        telefone: saved.phone ?? newTelefone ?? 'N/A',
+        historicoSync: [
+          {
+            data: new Date().toLocaleString('pt-BR').substring(0, 16),
+            descricao: `Importado do ERP. ${data.invoices?.synced ?? 0} fatura(s) sincronizada(s).`
+          }
+        ]
+      };
+
+      setSubscriptions([newSub, ...subscriptions]);
+      setNewCpf('');
+      setNewCodigo('');
+      setNewNome('');
+      setNewEmail('');
+      setNewTelefone('');
+      setErpSearchStatus(null);
+      setIsModalOpen(false);
+    } catch (err: any) {
+      setErpSearchStatus(
+        `❌ Falha ao falar com o backend: ${err.message || 'verifique se a API está em execução na porta 5089'}`
+      );
+    } finally {
+      setIsSavingSubscriber(false);
+    }
   };
 
   const handleExportCSV = () => {

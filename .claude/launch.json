@@ -6,9 +6,26 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
-        "dev"
+        "dev",
+        "--prefix",
+        "frontend/admin",
+        "--",
+        "--port",
+        "3000"
       ],
       "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "C:\\Program Files\\dotnet\\dotnet.exe",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "backend/Fikta.Api/Fikta.Api.csproj",
+        "--launch-profile",
+        "http"
+      ],
+      "port": 5089
     }
   ]
 }

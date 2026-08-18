@@ -31,6 +31,13 @@ public interface IApplicationDbContext
     DbSet<EmailTemplate> EmailTemplates { get; }
     DbSet<EmailDelivery> EmailDeliveries { get; }
     DbSet<EmailDeliveryLog> EmailDeliveryLogs { get; }
+    DbSet<CustomerInvoice> CustomerInvoices { get; }
+    DbSet<ErpSyncLog> ErpSyncLogs { get; }
+    DbSet<PlatformModule> Modules { get; }
+    DbSet<ProviderModule> ProviderModules { get; }
+    DbSet<Magazine> Magazines { get; }
+    DbSet<ProviderMagazine> ProviderMagazines { get; }
+    DbSet<AccessLog> AccessLogs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     int SaveChanges();

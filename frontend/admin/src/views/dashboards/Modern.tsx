@@ -1,9 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router';
 import CardBox from 'src/components/shared/CardBox';
 import Chart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
+import { getCurrentTenant } from 'src/data/tenants';
+import { apiGet } from 'src/api/client';
+import { useAutoRefresh } from 'src/hooks/useAutoRefresh';
+
+/** Resposta de GET /api/v1/platform/stats — tudo agregado no banco. */
+/** Provedor como devolvido por GET /api/v1/providers. */
+interface DashboardProvider {
+  id: string;
+  name: string;
+  status: string;
+  subscriberCount: number;
+  hasErpIntegration: boolean;
+  createdAt: string | null;
+}
+
+interface PlatformStats {
+  providers: { total: number; active: number };
+  subscribers: { total: number; active: number; delinquent: number; overdueAmount: number };
+  catalog: { books: number; magazines: number };
+  erpHealth: { callsLast24h: number; failuresLast24h: number; successRate: number | null };
+}
 
 interface UserSession {
   username: string;
@@ -22,56 +43,9 @@ interface Book {
   chapters: { title: string; content: string }[];
 }
 
-const mockBooks: Book[] = [
-  {
-    id: '1',
-    title: 'O Pequeno Príncipe',
-    author: 'Antoine de Saint-Exupéry',
-    category: 'Literatura Infantil',
-    coverUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400',
-    progress: 45,
-    chapters: [
-      { title: 'Capítulo I - O Desenho da Jiboia', content: 'Certa vez, quando tinha seis anos, vi num livro sobre a Floresta Virgem, chamado Histórias Vividas, uma imagem magnífica. Representava uma jiboia engolindo uma fera. Mostrei minha obra-prima às pessoas grandes e perguntei se tinham medo. Responderam: "Por que teríamos medo de um chapéu?" Meu desenho não representava um chapéu. Representava uma jiboia digerindo um elefante. Então desenhei o interior da jiboia para que as pessoas grandes pudessem compreender. Elas sempre necessitam de explicações detalhadas.' },
-      { title: 'Capítulo II - O Pequeno Homem do Deserto', content: 'Vivi assim, só, sem ninguém com quem conversar de verdade, até que tive uma pane no deserto do Saara, há seis anos. Algo se quebrara no motor do meu avião. E como não tinha comigo nem mecânico nem passageiros, preparei-me para tentar, sozinho, um conserto difícil. Era para mim questão de vida ou morte. A primeira noite adormeci sobre a areia, a mil milhas de qualquer terra habitada. Estava mais isolado que um náufrago numa jangada no meio do oceano. Imaginem, pois, minha surpresa, ao despertar com uma vozinha estranha dizendo: "Por favor... desenha-me um carneiro!"' },
-      { title: 'Capítulo III - A Rosa e os Espinhos', content: 'Levei muito tempo para compreender de onde vinha. O principezinho, que me fazia mil perguntas, parecia nunca escutar as minhas. Foram palavras pronunciadas ao acaso que, pouco a pouco, me revelaram tudo. Assim, quando viu meu avião pela primeira vez (não vou desenhar o meu avião, é um desenho muito complicado para mim), perguntou-me: "Que coisa é aquela?" "Não é uma coisa. Ela voa. É um avião. É o meu avião." E fiquei orgulioso de lhe contar que voava...' }
-    ]
-  },
-  {
-    id: '2',
-    title: 'Dom Casmurro',
-    author: 'Machado de Assis',
-    category: 'Clássicos Nacionais',
-    coverUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=400',
-    progress: 12,
-    chapters: [
-      { title: 'Capítulo I - Do Título', content: 'Uma noite destas, vindo da cidade para o Engenho Novo, encontrei no trem da Central um rapaz aqui do bairro, que eu conheço de vista e de chapéu. Cumprimentou-me, sentou-se ao pé de mim, falou do tempo, dos trens, e acabou me convidando para ler uns versos dele. Como eu não aceitasse logo, chamou-me de Casmurro. O título deste livro explica-se por esse apelido que me deram, e que acabei adotando na confecção das minhas memórias.' },
-      { title: 'Capítulo II - Do Casamento de Bentinho e Capitu', content: 'Minha mãe era viúva e desejava que eu entrasse no seminário para me tornar padre. Era promessa dela. Mas Capitu, que morava na casa ao lado, tinha olhos de ressaca, de cigana oblíqua e dissimulada. Nós crescemos juntos e, antes que soubéssemos o que era amar de verdade, já nos amávamos com todas as forças da nossa juventude. Decidimos então lutar contra o seminário para podermos casar...' }
-    ]
-  },
-  {
-    id: '3',
-    title: 'A Arte da Guerra',
-    author: 'Sun Tzu',
-    category: 'Filosofia e Estratégia',
-    coverUrl: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&q=80&w=400',
-    progress: 0,
-    chapters: [
-      { title: 'Capítulo I - Estimativas e Planos', content: 'A arte da guerra é de vital importância para o Estado. É uma questão de vida ou morte, uma estrada que leva à segurança ou à ruína. Portanto, deve ser estudada detalhadamente e analisada sob a luz de cinco fatores fundamentais: a Lei Moral, o Clima, o Terreno, o Comando e a Disciplina. Aquele que domina esses fatores sairá vitorioso.' },
-      { title: 'Capítulo II - Sobre a Condução da Guerra', content: 'Nas operações militares, quando você tem mil carros de guerra velozes, outros tantos pesados e cem mil soldados com armaduras, prontos para marchar através de longas distâncias, as despesas em casa e no front atingirão somas enormes. A vitória rápida é o principal objetivo. Se a campanha se prolongar, as armas dos soldados ficarão cegas e seu entusiasmo esfriará...' }
-    ]
-  },
-  {
-    id: '4',
-    title: '1984',
-    author: 'George Orwell',
-    category: 'Ficção Científica / Distopia',
-    coverUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400',
-    progress: 85,
-    chapters: [
-      { title: 'Capítulo I - O Grande Irmão está de olho', content: 'Era um dia frio e luminoso de abril, e os relógios batiam treze horas. Winston Smith, de queixo enfiado no peito no esforço de escapar do vento gelado, esgueirou-se rapidamente pelas portas de vidro das Mansões Victory. O saguão cheirava a repolho cozido e a velhos capachos de trapos. No fundo, um cartaz colorido fora pregado na parede. Representava apenas um rosto enorme: o rosto de um homem de uns quarenta e cinco anos, de bigode preto e feições rudemente belas. Winston subiu as escadas. De nada valia tentar o elevador. Mesmo nos melhores tempos raramente funcionava, e agora a energia elétrica era cortada durante o dia. Era a preparação para a Semana do Ódio...' }
-    ]
-  }
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/catalog/books
+const mockBooks: Book[] = [];
 
 const ModernDashboard = () => {
   const navigate = useNavigate();
@@ -484,14 +458,16 @@ const CustomerDashboardView = ({ user }: { user: UserSession }) => {
 
 // ==================== PROVIDER WORKFLOW (TechNet) ====================
 const ProviderDashboardView = ({ navigate }: { navigate: any }) => {
+  // Valores reais vêm da API — não preencher com exemplos.
+  // Origem: GET /api/v1/providers/{id}/stats
   const stats = [
-    { title: 'Total de Mídia', value: '233', icon: 'tabler:books', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
-    { title: 'Mídias Entregues', value: '516.376', icon: 'tabler:package', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
-    { title: 'Revistas Entregues', value: '238.486', icon: 'tabler:book-2', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
-    { title: 'Logins Únicos', value: '96', icon: 'tabler:user-check', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
-    { title: 'Utilizações', value: '1', icon: 'tabler:pointer', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
-    { title: 'Promocodes', value: '0', icon: 'tabler:discount-2', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
-    { title: 'Total Economizado', value: 'R$ 0,00', icon: 'tabler:coin', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
+    { title: 'Total de Mídia', value: '—', icon: 'tabler:books', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
+    { title: 'Mídias Entregues', value: '—', icon: 'tabler:package', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
+    { title: 'Revistas Entregues', value: '—', icon: 'tabler:book-2', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
+    { title: 'Logins Únicos', value: '—', icon: 'tabler:user-check', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
+    { title: 'Utilizações', value: '—', icon: 'tabler:pointer', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
+    { title: 'Promocodes', value: '—', icon: 'tabler:discount-2', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
+    { title: 'Total Economizado', value: '—', icon: 'tabler:coin', color: 'bg-emerald-100/80 border border-emerald-200/60 text-emerald-800' },
   ];
 
   const chartOptions: ApexOptions = {
@@ -520,7 +496,13 @@ const ProviderDashboardView = ({ navigate }: { navigate: any }) => {
       strokeDashArray: 3,
     },
     xaxis: {
-      categories: ['14/05', '15/05', '16/05', '17/05', '18/05', '19/05', '20/05'],
+      // Últimos 7 dias contados a partir de hoje — o eixo é real mesmo antes de haver
+      // dados nas séries, então o gráfico vazio ainda diz de qual período se trata.
+      categories: Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      }),
       axisBorder: { show: false },
       axisTicks: { show: false },
       labels: { style: { colors: '#7C8FAC' } },
@@ -535,15 +517,11 @@ const ProviderDashboardView = ({ navigate }: { navigate: any }) => {
     tooltip: { theme: 'dark' },
   };
 
+  // Séries reais vêm da API — não preencher com exemplos.
+  // Origem: GET /api/v1/providers/{id}/engagement?days=7
   const chartSeries = [
-    {
-      name: 'Novos Usuários',
-      data: [1, 2, 2, 1, 1, 0, 0],
-    },
-    {
-      name: 'Utilizações',
-      data: [0, 0, 1, 0, 0, 0, 0],
-    },
+    { name: 'Novos Usuários', data: [] as number[] },
+    { name: 'Utilizações', data: [] as number[] },
   ];
 
   return (
@@ -586,7 +564,7 @@ const ProviderDashboardView = ({ navigate }: { navigate: any }) => {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">Provedor</span>
-                <span className="font-semibold text-foreground">TechNet Telecom</span>
+                <span className="font-semibold text-foreground">{getCurrentTenant().name}</span>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">Integração ERP</span>
@@ -630,23 +608,76 @@ const ProviderDashboardView = ({ navigate }: { navigate: any }) => {
 
 // ==================== MASTER WORKFLOW (FIKTA Master) ====================
 const MasterDashboardView = ({ navigate }: { navigate: any }) => {
+  // Números globais agregados no banco por GET /api/v1/platform/stats.
+  // Enquanto a resposta não chega, os cards mostram "—" em vez de zero: zero é uma
+  // afirmação ("não há provedores"), e ainda não sabemos se é verdade.
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [providers, setProviders] = useState<DashboardProvider[]>([]);
+  const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
+
+  const load = useCallback(() => {
+    apiGet<PlatformStats>('/api/v1/platform/stats')
+      .then((d) => {
+        setStats(d);
+        setStatsError(null);
+        setRefreshedAt(new Date());
+      })
+      .catch((e) => setStatsError(e.message));
+
+    apiGet<{ providers: DashboardProvider[] }>('/api/v1/providers')
+      .then((d) => setProviders(d.providers ?? []))
+      .catch((e) => setStatsError(e.message));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Mantém o painel vivo sem depender de F5: recarrega a cada 30s e ao voltar o foco.
+  useAutoRefresh(load, 30_000);
+
+  /**
+   * Fatias do gráfico de assinantes por ISP.
+   *
+   * Rótulos e valores saem da MESMA lista, na mesma ordem — antes as legendas tinham sido
+   * esvaziadas mas a série continuava com números fixos, então o gráfico desenhava fatias
+   * anônimas com dados que não correspondiam a provedor nenhum.
+   *
+   * Provedores sem assinante ficam de fora: uma fatia de valor zero não é desenhável e só
+   * polui a legenda.
+   */
+  const chartProviders = providers.filter((p) => p.subscriberCount > 0);
+  const donutLabels = chartProviders.map((p) => p.name);
+  const donutSeries = chartProviders.map((p) => p.subscriberCount);
+
+  const num = (v: number | null | undefined) =>
+    v === null || v === undefined ? '—' : v.toLocaleString('pt-BR');
+
   const masterStats = [
-    { title: 'Provedores Parceiros', value: '6', icon: 'tabler:network', color: 'bg-primary/10 text-primary' },
-    { title: 'Assinantes Globais', value: '548', icon: 'tabler:users', color: 'bg-emerald-500/10 text-emerald-500' },
-    { title: 'Mídias Ativas', value: '12.450', icon: 'tabler:database', color: 'bg-indigo-500/10 text-indigo-500' },
-    { title: 'Economia B2B Total', value: 'R$ 48.920,00', icon: 'tabler:coin', color: 'bg-[#0B1D3A]/10 text-[#0B1D3A]' },
+    { title: 'Provedores Parceiros', value: num(stats?.providers.total), icon: 'tabler:network', color: 'bg-primary/10 text-primary' },
+    { title: 'Assinantes Globais', value: num(stats?.subscribers.total), icon: 'tabler:users', color: 'bg-emerald-500/10 text-emerald-500' },
+    { title: 'Livros no Catálogo', value: num(stats?.catalog.books), icon: 'tabler:database', color: 'bg-indigo-500/10 text-indigo-500' },
+    {
+      title: 'Inadimplência em Aberto',
+      value:
+        stats?.subscribers.overdueAmount === undefined || stats?.subscribers.overdueAmount === null
+          ? '—'
+          : stats.subscribers.overdueAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      icon: 'tabler:coin',
+      color: 'bg-[#0B1D3A]/10 text-[#0B1D3A]',
+    },
   ];
 
   const donutOptions: ApexOptions = {
     chart: { type: 'donut', fontFamily: 'inherit' },
     colors: ['#0B1D3A', '#5d87ff', '#13deb9', '#f6b51e', '#ef4444'],
-    labels: ['LinkProvedor', 'NetRápida', 'WebFibra', 'TechNet', 'TelecomSul', 'NovaFibra'],
+    labels: donutLabels,
     legend: { position: 'bottom', labels: { colors: '#7C8FAC' } },
     tooltip: { theme: 'dark' },
     stroke: { show: false },
   };
 
-  const donutSeries = [310, 142, 89, 7, 0, 0];
 
   return (
     <div className="space-y-6">
@@ -680,29 +711,47 @@ const MasterDashboardView = ({ navigate }: { navigate: any }) => {
               </button>
             </div>
             <div className="space-y-4">
-              {[
-                { name: 'TechNet Telecom', erp: 'Voalle ERP', subs: 7, status: 'Ativo' },
-                { name: 'NetRápida Fibra', erp: 'IXC Soft', subs: 142, status: 'Ativo' },
-                { name: 'WebFibra Internet', erp: 'SGP', subs: 89, status: 'Em Homologação' },
-              ].map((isp, index) => (
-                <div key={index} className="flex justify-between items-center border-b border-border pb-3 last:border-b-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-[#0B1D3A]/10 text-[#0B1D3A] flex items-center justify-center font-bold">
+              {/* Parceiros vindos de GET /api/v1/providers, os mais recentes primeiro. */}
+              {providers.length === 0 && (
+                <div className="py-8 text-center space-y-1.5">
+                  <Icon icon="tabler:building-broadcast-tower" width={32} className="mx-auto text-muted-foreground/40" />
+                  <p className="text-sm font-semibold text-foreground">Nenhum provedor cadastrado</p>
+                  <button
+                    onClick={() => navigate('/admin/providers')}
+                    className="text-xs text-primary font-bold hover:underline"
+                  >
+                    Cadastrar o primeiro parceiro
+                  </button>
+                </div>
+              )}
+              {[...providers]
+                .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+                .slice(0, 5)
+                .map((isp) => (
+                <div
+                  key={isp.id}
+                  onClick={() => navigate(`/admin/providers/${isp.id}`)}
+                  className="flex justify-between items-center gap-3 border-b border-border pb-3 last:border-b-0 last:pb-0 cursor-pointer hover:opacity-80 transition-all"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 shrink-0 rounded-lg bg-[#0B1D3A]/10 text-[#0B1D3A] flex items-center justify-center font-bold">
                       {isp.name.substring(0, 2).toUpperCase()}
                     </div>
-                    <div>
-                      <h6 className="font-bold text-sm text-foreground">{isp.name}</h6>
-                      <p className="text-xs text-muted-foreground">{isp.erp}</p>
+                    <div className="min-w-0">
+                      <h6 className="font-bold text-sm text-foreground truncate">{isp.name}</h6>
+                      <p className="text-xs text-muted-foreground">
+                        {isp.hasErpIntegration ? 'ERP integrado' : 'Sem integração'}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">{isp.subs} assinantes</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-foreground">{isp.subscriberCount} assinantes</p>
                     <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                      isp.status === 'Ativo' 
+                      isp.status === 'ACTIVE'
                         ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                         : 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300'
                     }`}>
-                      {isp.status}
+                      {isp.status === 'ACTIVE' ? 'Ativo' : isp.status}
                     </span>
                   </div>
                 </div>
@@ -715,7 +764,24 @@ const MasterDashboardView = ({ navigate }: { navigate: any }) => {
           <CardBox className="h-full border border-border">
             <h5 className="text-base font-bold text-foreground mb-4">Assinantes por ISP</h5>
             <div className="h-[280px] flex items-center justify-center">
-              <Chart options={donutOptions} series={donutSeries} type="donut" width="100%" />
+              {/*
+                Um donut sem fatias renderiza um quadrado em branco, que o operador lê como
+                falha de carregamento. Com nenhum provedor tendo assinantes, dizer isso em
+                texto é mais informativo do que desenhar um gráfico vazio.
+              */}
+              {donutSeries.length === 0 ? (
+                <div className="text-center space-y-1.5 px-4">
+                  <Icon icon="tabler:chart-donut" width={34} className="mx-auto text-muted-foreground/40" />
+                  <p className="text-sm font-semibold text-foreground">Sem assinantes ainda</p>
+                  <p className="text-xs text-muted-foreground">
+                    {providers.length === 0
+                      ? 'Cadastre um provedor para começar.'
+                      : 'Os provedores cadastrados ainda não têm assinantes importados.'}
+                  </p>
+                </div>
+              ) : (
+                <Chart options={donutOptions} series={donutSeries} type="donut" width="100%" />
+              )}
             </div>
           </CardBox>
         </div>

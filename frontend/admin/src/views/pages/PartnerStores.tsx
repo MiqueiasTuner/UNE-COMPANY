@@ -17,60 +17,9 @@ interface PartnerStore {
   terms: string;
 }
 
-const initialStores: PartnerStore[] = [
-  {
-    id: '1',
-    name: 'Droga Raia',
-    category: 'Saúde & Farmácia',
-    benefitText: 'Até 35% de desconto em medicamentos genéricos',
-    couponCode: 'RAIAUNE35',
-    status: true,
-    logoColor: 'bg-emerald-500 text-white',
-    views: 1240,
-    redemptions: 432,
-    redirectUrl: 'https://drogaraia.com.br/parceiros/unebook',
-    terms: 'Válido apenas para compras online no site da Droga Raia utilizando o cupom de desconto na sacola.'
-  },
-  {
-    id: '2',
-    name: 'Cinemark',
-    category: 'Entretenimento & Lazer',
-    benefitText: 'Ingressos de cinema com 50% de desconto',
-    couponCode: 'CINEMARKFIKTA',
-    status: true,
-    logoColor: 'bg-red-600 text-white',
-    views: 890,
-    redemptions: 210,
-    redirectUrl: 'https://cinemark.com.br/unebook-sva',
-    terms: 'Desconto aplicável para salas tradicionais 2D de segunda a quinta-feira. Não cumulativo com meia entrada.'
-  },
-  {
-    id: '3',
-    name: 'Netshoes',
-    category: 'Esportes & Moda',
-    benefitText: '15% de desconto extra em todo o catálogo de calçados',
-    couponCode: 'NETSHOESUNE15',
-    status: true,
-    logoColor: 'bg-purple-800 text-white',
-    views: 1450,
-    redemptions: 590,
-    redirectUrl: 'https://netshoes.com.br/parcerias/unebook',
-    terms: 'Cupom cumulativo com descontos progressivos do site. Exclui produtos de lojistas marketplace parceiros.'
-  },
-  {
-    id: '4',
-    name: 'Casas Bahia',
-    category: 'Eletrodomésticos',
-    benefitText: 'Cupom de R$ 100 em compras acima de R$ 1.500',
-    couponCode: 'CBAHIAUNE100',
-    status: false,
-    logoColor: 'bg-blue-600 text-white',
-    views: 402,
-    redemptions: 8,
-    redirectUrl: 'https://casasbahia.com.br/h/unebook',
-    terms: 'Válido para produtos selecionados entregues por Casas Bahia. Cupom expira em 31/12/2026.'
-  }
-];
+// Dados reais vêm da API — não popular com exemplos.
+// Origem: GET /api/v1/partner-stores
+const initialStores: PartnerStore[] = [];
 
 const PartnerStores = () => {
   const [stores, setStores] = useState<PartnerStore[]>(initialStores);
